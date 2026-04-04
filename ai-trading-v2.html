@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEMA - AI Trading Assistant v2</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+.header { background: #161b22; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; }
+.header h1 { font-size: 18px; color: #58a6ff; }
+.header span { font-size: 12px; color: #8b949e; }
+.tabs { display: flex; background: #161b22; border-bottom: 1px solid #30363d; }
+.tab { padding: 12px 24px; cursor: pointer; color: #8b949e; border-bottom: 2px solid transparent; font-size: 14px; }
+.tab:hover { color: #e6edf3; }
+.tab.active { color: #58a6ff; border-bottom: 2px solid #58a6ff; }
+.content { display: none; padding: 16px; }
+.content.active { display: block; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+.card h3 { font-size: 13px; color: #8b949e; text-transform: uppercase; margin-bottom: 12px; }
+.card h2 { font-size: 20px; color: #58a6ff; }
+.positive { color: #3fb950; }
+.negative { color: #f85149; }
+.holdings-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.holdings-table th { text-align: left; font-size: 11px; color: #8b949e; padding: 6px 8px; border-bottom: 1px solid #30363d; }
+.holdings-table td { font-size: 13px; padding: 8px; border-bottom: 1px solid #21262d; }
+.progress-bar { background: #21262d; border-radius: 4px; height: 6px; margin: 6px 0; }
+.progress-fill { height: 100%; border-radius: 4px; background: #58a6ff; }
+.alarm-panel { background: #161b22; border: 1px solid #f0883e; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.alarm-panel h4 { color: #f0883e; font-size: 13px; margin-bottom: 8px; }
+.alarm-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #21262d; font-size: 13px; }
+.alarm-item:last-child { border-bottom: none; }
+.alarm-icon { font-size: 16px; }
+.alarm-high { color: #f85149; }
+.alarm-medium { color: #f0883e; }
+.alarm-low { color: #d29922; }
+.risk-box { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 12px; margin-bottom: 10px; }
+.risk-label { font-size: 11px; color: #8b949e; }
+.risk-value { font-size: 14px; font-weight: bold; margin: 4px 0; }
+.param-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; color: #8b949e; }
+.rec-box { background: #161b22; border: 1px solid #3fb950; border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+.rec-box h4 { color: #3fb950; font-size: 13px; margin-bottom: 8px; }
+.rec-amount { font-size: 22px; font-weight: bold; color: #58a6ff; margin: 6px 0; }
+.rec-reason { font-size: 12px; color: #8b949e; line-height: 1.5; margin-top: 6px; }
+.news-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #21262d; font-size: 12px; }
+.news-date { color: #8b949e; min-width: 60px; }
+.news-text { color: #e6edf3; }
+.btn { background: #238636; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.btn:hover { background: #2ea043; }
+#chat-box { height: 280px; overflow-y: auto; border: 1px solid #30363d; border-radius: 6px; padding: 12px; background: #0d1117; margin-bottom: 10px; }
+.chat-msg { margin-bottom: 10px; font-size: 13px; line-height: 1.5; }
+.chat-user { color: #58a6ff; }
+.chat-ai { color: #e6edf3; }
+#chat-input { width: 100%; background: #0d1117; border: 1px solid #30363d; color: #e6edf3; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; }
+.tabs-right { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📈 GEMA - AI Trading Assistant</h1>
+    <span>Portefølje: 150.000 DKK | Dato: 04-04-2026</span>
+  </div>
+  <div class="tabs-right">
+    <button class="btn" onclick="sendMsg()">Analyser</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</div>
+  <div class="tab" onclick="switchTab('assistant')">🤖 AI Assistant</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="content active">
+  <div class="grid">
+    <div class="card">
+      <h3>Samlet Værdi</h3>
+      <h2>152.430 DKK</h2>
+      <span class="positive">+2.430 (+1,62%)</span>
+    </div>
+    <div class="card">
+      <h3>Dagsbalance</h3>
+      <h2>+1.842 DKK</h2>
+      <span class="positive">+1,22%</span>
+    </div>
+  </div>
+
+  <div style="margin: 16px 0;">
+    <div class="alarm-panel">
+      <h4>🔔 Alarm Panel</h4>
+      <div class="alarm-item">
+        <span class="alarm-icon">⚠️</span>
+        <span><span class="alarm-high">XOP</span> er +8% over de seneste 30 dage — <b>måske tid til at tage gevinst?</b></span>
+      </div>
+      <div class="alarm-item">
+        <span class="alarm-icon">🔴</span>
+        <span><span class="alarm-high">AAPL</span> nærmer sig stop-loss niveau (142,50 $)</span>
+      </div>
+      <div class="alarm-item">
+        <span class="alarm-icon">📉</span>
+        <span><span class="alarm-medium">NVDA</span> faldt 4% i sidste session — hold øje</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 16px;">
+    <h3>Mine Positioner</h3>
+    <table class="holdings-table">
+      <tr><th>Aktie</th><th>Antal</th><th>Købspris</th><th>Nu</th><th>Gevinst</th></tr>
+      <tr><td>XOP</td><td>50</td><td>145,00 $</td><td>156,50 $</td><td class="positive">+7,9%</td></tr>
+      <tr><td>AAPL</td><td>30</td><td>148,00 $</td><td>143,20 $</td><td class="negative">-3,2%</td></tr>
+      <tr><td>NVDA</td><td>15</td><td>520,00 $</td><td>499,00 $</td><td class="negative">-4,0%</td></tr>
+      <tr><td>TSLA</td><td>20</td><td>195,00 $</td><td>212,00 $</td><td class="positive">+8,7%</td></tr>
+    </table>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Risiko-Parametre</h3>
+      <div class="risk-box">
+        <div class="risk-label">Max positionsstørrelse</div>
+        <div class="risk-value">15.000 DKK (10%)</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+      </div>
+      <div class="risk-box">
+        <div class="risk-label">Stop-loss barriere</div>
+        <div class="risk-value">-5% = 7.142 DKK</div>
+      </div>
+      <div class="risk-box">
+        <div class="risk-label">Risk/Reward ratio</div>
+        <div class="risk-value">1:2.5</div>
+      </div>
+      <div class="risk-box">
+        <div class="risk-label">Maksimal eksponering</div>
+        <div class="risk-value">40% = 60.000 DKK</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Nyheder & Risiko-Varsler</h3>
+      <div class="news-item"><span class="news-date">02-04</span><span class="news-text">📉 <b>YDYNY</b> risikerer at falde de næste 7 dage — nyhedsanalyse indikerer svaghed i momentum.</span></div>
+      <div class="news-item"><span class="news-date">01-04</span><span class="news-text">📊 Fed signalerer renteændring — mulig effekt på tech-sektoren.</span></div>
+      <div class="news-item"><span class="news-date">30-03</span><span class="news-text">⚡ XOP oliepriser stiger — kortsigtet volatilitet forventes.</span></div>
+      <div class="news-item"><span class="news-date">28-03</span><span class="news-text">✅ AAPL: Stærk kvartalsrapport — eye-level outlook.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI ASSISTANT -->
+<div id="assistant" class="content">
+  <div class="rec-box">
+    <h4>💡 Seneste Købsanbefaling</h4>
+    <div class="rec-amount">KØB: 10.258 DKK i NVDA</div>
+    <div class="rec-reason">
+      <b>Beregning:</b> Portefølje = 150.000 DKK. Maks position = 10% = 15.000 DKK.<br>
+      NVDA nuværende: 499 $. Stop-loss: -5% = 474 $. Risk = 25 $ × 15 aktier = 375 $.<br>
+      Med R/R 1:2.5: Forventet gevinst = 937 $ (ca. 6.700 DKK).<br>
+      <b>Bundet til 15.000 + eksisterende 15 stk = 20 stk total.</b><br>
+      <span class="positive">Forventet afkast: +6,3% på 30 dage.</span>
+    </div>
+  </div>
+  <div id="chat-box">
+    <div class="chat-msg"><span class="chat-ai">👋 Hej FiWa! Jeg er GEMA. Hvordan kan jeg hjælpe dig med din portefølje i dag?</div>
+  </div>
+  <input id="chat-input" placeholder="Skriv dit spørgsmål... (f.eks. 'Hvad skal jeg købe nu?')" onkeydown="if(event.key==='Enter')sendMsg()">
+  <button class="btn" onclick="sendMsg()">Send</button>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
+  if(tab==='dashboard') document.querySelectorAll('.tab')[0].classList.add('active');
+  else document.querySelectorAll('.tab')[1].classList.add('active');
+  document.getElementById(tab).classList.add('active');
+}
+function sendMsg() {
+  var input=document.getElementById('chat-input');
+  var box=document.getElementById('chat-box');
+  var q=input.value.trim();
+  if(!q) return;
+  box.innerHTML+='<div class="chat-msg"><span class="chat-user">👤 Du:</span> '+q+'</div>';
+  input.value='';
+  setTimeout(function(){
+    var ans='Baseret på din portefølje og risikoprofil anbefaler jeg at holde fast i XOP men overvej at tage gevinst ved 165 $. For NVDA: vent på bekræftelse over 510 $. Vil du have en detaljeret analyse?';
+    box.innerHTML+='<div class="chat-msg"><span class="chat-ai">🤖 GEMA:</span> '+ans+'</div>';
+    box.scrollTop=box.scrollHeight;
+  },800);
+}
+</script>
+</body>
+</html>
