@@ -1,0 +1,25 @@
+Timestamp_UTC,Ticker,Status,Årsag,Luk,ATR,Stop,TP1,TP2,Pos.størrelse (~stk),Kommentar
+2026-03-31T17:07:34Z,XOP,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,OIH,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,IYE,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,VDE,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,XLE,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,USO,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,BNO,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,ITA,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,PPA,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,XAR,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,GLD,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:07:34Z,IAU,FEJL,"Datafejl: float() argument must be a string or a real number, not 'Series'",,0.0,,,,0,
+2026-03-31T17:08:37Z,XOP,KØBEKLAR – Trend,"Pris > SMA50 > SMA200, SMA200 stiger og RSI mellem 50–70 (trendstyrke)",181.07,5.14,170.78,201.65,211.94,145,Anbefaling: sælg delvist ved TP1 (≈2R) og lad resten køre med 'Chandelier' trailing (≈3×ATR) eller under SMA50 ved 2 lukkedage. Hårdt stop ved initialt stop.
+2026-03-31T17:08:37Z,OIH,KØBEKLAR – Trend,"Pris > SMA50 > SMA200, SMA200 stiger og RSI mellem 50–70 (trendstyrke)",406.07,11.99,382.09,454.03,478.01,62,Anbefaling: sælg delvist ved TP1 (≈2R) og lad resten køre med 'Chandelier' trailing (≈3×ATR) eller under SMA50 ved 2 lukkedage. Hårdt stop ved initialt stop.
+2026-03-31T17:08:37Z,IYE,KØBEKLAR – Trend,"Pris > SMA50 > SMA200, SMA200 stiger og RSI mellem 50–70 (trendstyrke)",64.54,1.37,61.8,70.03,72.78,546,Anbefaling: sælg delvist ved TP1 (≈2R) og lad resten køre med 'Chandelier' trailing (≈3×ATR) eller under SMA50 ved 2 lukkedage. Hårdt stop ved initialt stop.
+2026-03-31T17:08:37Z,VDE,KØBEKLAR – Trend,"Pris > SMA50 > SMA200, SMA200 stiger og RSI mellem 50–70 (trendstyrke)",172.53,3.87,164.79,188.01,195.75,193,Anbefaling: sælg delvist ved TP1 (≈2R) og lad resten køre med 'Chandelier' trailing (≈3×ATR) eller under SMA50 ved 2 lukkedage. Hårdt stop ved initialt stop.
+2026-03-31T17:08:37Z,XLE,KØBEKLAR – Trend,"Pris > SMA50 > SMA200, SMA200 stiger og RSI mellem 50–70 (trendstyrke)",61.0,1.41,58.17,66.66,69.49,530,Anbefaling: sælg delvist ved TP1 (≈2R) og lad resten køre med 'Chandelier' trailing (≈3×ATR) eller under SMA50 ved 2 lukkedage. Hårdt stop ved initialt stop.
+2026-03-31T17:08:37Z,USO,KØBEKLAR – Trend,"Pris > SMA50 > SMA200, SMA200 stiger og RSI mellem 50–70 (trendstyrke)",125.7,6.74,112.22,152.67,166.15,111,Anbefaling: sælg delvist ved TP1 (≈2R) og lad resten køre med 'Chandelier' trailing (≈3×ATR) eller under SMA50 ved 2 lukkedage. Hårdt stop ved initialt stop.
+2026-03-31T17:08:37Z,BNO,KØBEKLAR – Trend,"Pris > SMA50 > SMA200, SMA200 stiger og RSI mellem 50–70 (trendstyrke)",51.91,2.65,46.61,62.51,67.81,283,Anbefaling: sælg delvist ved TP1 (≈2R) og lad resten køre med 'Chandelier' trailing (≈3×ATR) eller under SMA50 ved 2 lukkedage. Hårdt stop ved initialt stop.
+2026-03-31T17:08:37Z,ITA,AFVENT,,217.46,5.89,205.69,241.01,252.79,127,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.71%).
+2026-03-31T17:08:37Z,PPA,AFVENT,,164.8,4.01,156.77,180.86,188.89,186,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.44%).
+2026-03-31T17:08:37Z,XAR,AFVENT,,252.32,8.49,235.34,286.28,303.26,88,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 3.37%).
+2026-03-31T17:08:37Z,GLD,AFVENT,,427.05,13.14,400.77,479.61,505.89,57,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 3.08%).
+2026-03-31T17:08:37Z,IAU,AFVENT,,87.49,2.6,82.29,97.89,103.09,288,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.97%).

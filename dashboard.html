@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETF Monitor — Aktieprojekt</title>
+    <style>
+        :root {
+            --bg: #0f1419;
+            --card: #1a2332;
+            --border: #2a3a50;
+            --text: #e8eef4;
+            --muted: #8899a6;
+            --green: #00c853;
+            --green-bg: #0d2d1a;
+            --yellow: #ffc107;
+            --yellow-bg: #2d2a0d;
+            --red: #ff5252;
+            --red-bg: #2d0d0d;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        h1 { margin: 0; font-size: 1.4rem; color: var(--text); }
+        .subtitle { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+        .badge {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+        .live-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            background: var(--green);
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .summary-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .summary-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            flex: 1;
+        }
+        .summary-card.green { border-left: 3px solid var(--green); }
+        .summary-card.yellow { border-left: 3px solid var(--yellow); }
+        .summary-card.red { border-left: 3px solid var(--red); }
+        .summary-num { font-size: 2rem; font-weight: 700; }
+        .summary-num.green { color: var(--green); }
+        .summary-num.yellow { color: var(--yellow); }
+        .summary-num.red { color: var(--red); }
+        .summary-label { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
+        .perf-bar {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .perf-bar-track {
+            flex: 1;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .perf-bar-fill { height: 100%; border-radius: 3px; }
+        .perf-bar-fill.up { background: var(--green); }
+        .perf-bar-fill.down { background: var(--red); }
+        .perf-val { font-size: 0.75rem; min-width: 50px; text-align: right; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th {
+            background: #151d28;
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th.num { text-align: right; }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        td:last-child { border-bottom: none; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #1e2a3a; }
+        td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .ticker {
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
+        }
+        .signal {
+            display: inline-block;
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .signal.koebeklar { background: var(--green-bg); color: var(--green); border: 1px solid #00a84330; }
+        .signal.afvent { background: var(--yellow-bg); color: var(--yellow); border: 1px solid #c79b0030; }
+        .setup {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .setup strong { color: var(--text); }
+        .vol-tag {
+            display: inline-block;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .vol-tag.low { background: #0d2d1a; color: #00c853; }
+        .vol-tag.mid { background: #2d2a0d; color: #ffc107; }
+        .vol-tag.high { background: #2d0d0d; color: #ff5252; }
+        .pct-up { color: var(--green); }
+        .pct-down { color: var(--red); }
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.75rem;
+        }
+        .benchmark-note {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-top: 24px;
+        }
+        .benchmark-note h3 { margin: 0 0 12px 0; font-size: 0.95rem; color: var(--text); }
+        .benchmark-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+        .bench-item {
+            background: #151d28;
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bench-ticker { font-weight: 600; font-size: 0.85rem; }
+        .bench-pct { font-weight: 700; font-size: 0.9rem; }
+        .bench-pct.up { color: var(--green); }
+        .bench-pct.down { color: var(--red); }
+        .bench-pct.c20 { color: var(--red); }
+        .signal-detail { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+        @media (max-width: 700px) {
+            .summary-row { flex-direction: column; }
+            .benchmark-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div>
+            <h1>🫀 ETF Monitor</h1>
+            <div class="subtitle">Aktieprojekt — Dag 4/30</div>
+        </div>
+        <div class="badge">
+            <span class="live-dot"></span>
+            <span id="updated">Opdaterer...</span>
+        </div>
+    </header>
+
+    <div class="summary-row">
+        <div class="summary-card green">
+            <div class="summary-num green" id="count-koeb">7</div>
+            <div class="summary-label">KØBEKLAR</div>
+        </div>
+        <div class="summary-card yellow">
+            <div class="summary-num yellow" id="count-afvent">5</div>
+            <div class="summary-label">AFVENT</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-num" id="best-pct">+96%</div>
+            <div class="summary-label">Bedste 3 mdr (USO)</div>
+            <div class="perf-bar">
+                <div class="perf-bar-track"><div class="perf-bar-fill up" style="width:100%"></div></div>
+                <div class="perf-val pct-up">+96.41%</div>
+            </div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Ticker</th>
+                <th class="num">Pris</th>
+                <th>Signal</th>
+                <th>Setup</th>
+                <th class="num">RSI</th>
+                <th class="num">ATR%</th>
+                <th>Vol</th>
+                <th class="num">Stop</th>
+                <th class="num">TP1</th>
+                <th class="num">Pos.stk</th>
+            </tr>
+        </thead>
+        <tbody id="etf-body">
+        </tbody>
+    </table>
+
+    <div class="benchmark-note">
+        <h3>📊 Benchmark: 3 måneders performance vs C20</h3>
+        <div class="benchmark-grid" id="bench-grid">
+            <div class="bench-item"><span class="bench-ticker">C20</span><span class="bench-pct down c20">-6.4%</span></div>
+            <div class="bench-item"><span class="bench-ticker">USO</span><span class="bench-pct up">+96.4%</span></div>
+            <div class="bench-item"><span class="bench-ticker">BNO</span><span class="bench-pct up">+88.2%</span></div>
+            <div class="bench-item"><span class="bench-ticker">XOP</span><span class="bench-pct up">+40.0%</span></div>
+            <div class="bench-item"><span class="bench-ticker">VDE</span><span class="bench-pct up">+28.4%</span></div>
+            <div class="bench-item"><span class="bench-ticker">OIH</span><span class="bench-pct up">+28.0%</span></div>
+            <div class="bench-item"><span class="bench-ticker">XLE</span><span class="bench-pct up">+27.2%</span></div>
+            <div class="bench-item"><span class="bench-ticker">GLD</span><span class="bench-pct up">+5.0%</span></div>
+            <div class="bench-item"><span class="bench-ticker">IYE</span><span class="bench-pct up">+25.0%</span></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Data: Yahoo Finance · Kør med <code>python etf_monitor.py --once</code><br>
+        Kun handler i US markedets åbningstid (09:30–16:00 ET)
+    </div>
+</div>
+
+<script>
+// LIVE DATA — from etf_monitor.py run 2026-04-04
+// ATR% = ATR/Luk*100; Vol: lav <2%, mid 2-3%, høj >3%
+const etfData = [
+    // KØBEKLAR
+    { ticker: "XOP", price: 177.72, signal: "KØBEKLAR", setup: "Trend køb", rsi: null, atr_pct: 3.22, vol: "høj", stop: 166.27, tp1: 200.62, tp2: 212.07, pos: 131, aarsag: "Pris > SMA50 > SMA200, SMA200 stiger, RSI 50–70" },
+    { ticker: "OIH", price: 399.05, signal: "KØBEKLAR", setup: "Trend køb", rsi: null, atr_pct: 3.02, vol: "høj", stop: 374.94, tp1: 447.27, tp2: 471.38, pos: 62, aarsag: "Pris > SMA50 > SMA200, SMA200 stiger, RSI 50–70" },
+    { ticker: "IYE", price: 62.83, signal: "KØBEKLAR", setup: "Trend køb", rsi: null, atr_pct: 2.53, vol: "mid", stop: 59.65, tp1: 69.19, tp2: 72.37, pos: 471, aarsag: "Pris > SMA50 > SMA200, SMA200 stiger, RSI 50–70" },
+    { ticker: "VDE", price: 168.06, signal: "KØBEKLAR", setup: "Trend køb", rsi: null, atr_pct: 2.64, vol: "mid", stop: 159.19, tp1: 185.80, tp2: 194.67, pos: 169, aarsag: "Pris > SMA50 > SMA200, SMA200 stiger, RSI 50–70" },
+    { ticker: "XLE", price: 59.25, signal: "KØBEKLAR", setup: "Trend køb", rsi: null, atr_pct: 2.73, vol: "mid", stop: 56.02, tp1: 65.71, tp2: 68.94, pos: 464, aarsag: "Pris > SMA50 > SMA200, SMA200 stiger, RSI 50–70" },
+    { ticker: "USO", price: 137.92, signal: "KØBEKLAR", setup: "Breakout", rsi: null, atr_pct: 5.27, vol: "høj", stop: 123.39, tp1: 166.98, tp2: 181.51, pos: 103, aarsag: "Luk over Donchian 55-høj (range-brud)" },
+    { ticker: "BNO", price: 54.12, signal: "KØBEKLAR", setup: "Trend køb", rsi: null, atr_pct: 5.06, vol: "høj", stop: 48.65, tp1: 65.06, tp2: 70.53, pos: 274, aarsag: "Pris > SMA50 > SMA200, SMA200 stiger, RSI 50–70" },
+    // AFVENT
+    { ticker: "ITA", price: 221.91, signal: "AFVENT", setup: "—", rsi: null, atr_pct: 2.70, vol: "mid", stop: 209.94, tp1: 245.85, tp2: 257.82, pos: 125, aarsag: "Ingen købesignal. Overvåg SMA50/SMA200 og Donchian." },
+    { ticker: "PPA", price: 169.68, signal: "AFVENT", setup: "—", rsi: null, atr_pct: 2.45, vol: "mid", stop: 161.37, tp1: 186.30, tp2: 194.61, pos: 180, aarsag: "Ingen købesignal. Overvåg SMA50/SMA200 og Donchian." },
+    { ticker: "XAR", price: 259.58, signal: "AFVENT", setup: "—", rsi: null, atr_pct: 3.37, vol: "høj", stop: 242.09, tp1: 294.56, tp2: 312.05, pos: 85, aarsag: "Ingen købesignal. Overvåg SMA50/SMA200 og Donchian." },
+    { ticker: "GLD", price: 429.41, signal: "AFVENT", setup: "—", rsi: null, atr_pct: 3.11, vol: "høj", stop: 402.71, tp1: 482.81, tp2: 509.51, pos: 56, aarsag: "Ingen købesignal. Overvåg SMA50/SMA200 og Donchian." },
+    { ticker: "IAU", price: 87.94, signal: "AFVENT", setup: "—", rsi: null, atr_pct: 3.02, vol: "høj", stop: 82.63, tp1: 98.56, tp2: 103.87, pos: 282, aarsag: "Ingen købesignal. Overvåg SMA50/SMA200 og Donchian." },
+];
+
+const volCls = { lav: 'low', mid: 'mid', høj: 'high' };
+
+const tbody = document.getElementById('etf-body');
+etfData.forEach(etf => {
+    const cls = etf.signal === 'KØBEKLAR' ? 'koebeklar' : 'afvent';
+    tbody.innerHTML += `
+    <tr>
+        <td class="ticker">${etf.ticker}</td>
+        <td class="num">$${etf.price.toFixed(2)}</td>
+        <td><span class="signal ${cls}">${etf.signal}</span><div class="signal-detail">${etf.setup !== '—' ? etf.setup : ''}</div></td>
+        <td class="setup"><strong>${etf.setup !== '—' ? etf.setup : '—'}</strong><div class="signal-detail" style="max-width:200px">${etf.aarsag.substring(0,80)}</div></td>
+        <td class="num">${etf.rsi ? etf.rsi.toFixed(1) : '—'}</td>
+        <td class="num">${etf.atr_pct.toFixed(2)}%</td>
+        <td><span class="vol-tag ${volCls[etf.vol]}">${etf.vol.toUpperCase()}</span></td>
+        <td class="num">$${etf.stop.toFixed(2)}</td>
+        <td class="num">$${etf.tp1.toFixed(2)}</td>
+        <td class="num">${etf.pos.toLocaleString('da-DK')}</td>
+    </tr>`;
+});
+
+// Count badges
+const koeb = etfData.filter(e => e.signal === 'KØBEKLAR').length;
+const afvent = etfData.filter(e => e.signal === 'AFVENT').length;
+document.getElementById('count-koeb').textContent = koeb;
+document.getElementById('count-afvent').textContent = afvent;
+
+document.getElementById('updated').textContent = 'Live data 2026-04-04 (lukkekurser)';
+</script>
+</body>
+</html>
