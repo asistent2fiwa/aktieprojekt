@@ -388,6 +388,25 @@ tr.stock-row:hover { cursor: pointer; }
   box-shadow: 0 0 10px rgba(0,229,255,0.3);
 }
 
+#stockDropdownAI {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #1e1e1e;
+  border: 1px solid #00e5ff;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  z-index: 1000;
+  display: none;
+}
+
+#stockDropdownAI.show {
+  display: block;
+}
+
 .autocomplete-dropdown.show {
   display: block;
 }
@@ -487,27 +506,24 @@ tr.stock-row:hover { cursor: pointer; }
 </head>
 <body>
 
-<div class="header">
-  <img src="logo.png" alt="GEMA" style="height:40px;margin-right:10px;">
-  <h1>🤖 GEMA</h1>
-  <span>AI Trading Assistant v3</span>
-  <div class="currency-rates" style="font-size:0.75em;color:#888;">
-    USD: <span id="usdRate">6.90</span>
-    EUR: <span id="eurRate">7.45</span>
-    GBP: <span id="gbpRate">8.80</span>
-    <button onclick="updateCurrencyRates()" style="background:#222;border:1px solid #444;color:#888;padding:2px 6px;cursor:pointer;">↻</button>
+<div class="header" style="display:flex;align-items:center;gap:15px;padding-bottom:15px;border-bottom:2px solid #333;margin-bottom:20px;">
+  <img src="logo.png" alt="GEMA" style="height:36px;border-radius:8px;">
+  <div>
+    <h1 style="font-size:1.4em;color:#00e5ff;margin:0;">GEMA</h1>
+    <div style="font-size:0.75em;color:#666;">AI Trading Assistant</div>
   </div>
-  <div class="header-right">
-    <div class="timestamp" id="lastUpdate">Opdateret: --</div>
-    <button onclick="manualRefreshAll()" id="refreshAllBtn" style="background:#1e1e1e; border:1px solid var(--cyan); color:var(--cyan); padding:5px 12px; border-radius:20px; cursor:pointer; font-size:0.78em;">🔄 Opdater nu</button>
-    <div id="userInfo" style="display:none; font-size:0.8em; color:#888;"></div>
-    <button id="logoutBtn" onclick="logout()" style="background:#333; border:1px solid #555; color:#e0e0e0; padding:6px 14px; border-radius:20px; cursor:pointer; font-size:0.8em;">Logout</button>
-    <select class="version-select" id="versionSelect" onchange="loadVersion()">
-      <option value="v3" selected>v3 (nuværende)</option>
+  <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+    <select class="version-select" id="versionSelect" onchange="switchVersion(this.value)" style="background:#111;border:1px solid #333;color:#888;padding:4px 8px;border-radius:4px;font-size:0.75em;">
+      <option value="v3" selected>v3</option>
       <option value="v2">v2</option>
-      <option value="v1">v1</option>
     </select>
+    <button onclick="refreshAll()" style="background:#222;border:1px solid #444;color:#888;padding:6px 12px;border-radius:4px;cursor:pointer;">↻</button>
   </div>
+</div>
+<div style="font-size:0.7em;color:#555;display:flex;gap:12px;">
+  <span>USD: <b id="usdRate">6.90</b></span>
+  <span>EUR: <b id="eurRate">7.45</b></span>
+  <span>GBP: <b id="gbpRate">8.80</b></span>
 </div>
 
 <div class="tabs">
@@ -515,6 +531,7 @@ tr.stock-row:hover { cursor: pointer; }
   <div class="tab" onclick="switchTab('assistant')">🧠 AI Assistant</div>
   <div class="tab" onclick="switchTab('alarms')">🔔 Alarms</div>
   <div class="tab" onclick="switchTab('chat')">💬 Chat</div>
+  <div class="tab" onclick="switchTab('etf')">📊 ETF</div>
 </div>
 
 <!-- Mobile Chat Button -->
@@ -740,6 +757,37 @@ tr.stock-row:hover { cursor: pointer; }
       <button class="quick-action-btn" onclick="quickChat('Hvad er min samlede portefølje værdi?')">💰 Portefølje værdi</button>
     </div>
   </div>
+</div>
+
+<!-- ETF TAB -->
+<div id="panel-etf" class="panel">
+  <h2 style="color:#00e5ff;margin-bottom:10px;">📊 ETF Monitor</h2>
+  <p style="color:#666;margin-bottom:15px;">ETF signals baseret på teknisk analyse</p>
+  
+  <div class="row">
+    <div class="card" style="border-left:3px solid #00c853;">
+      <h3 style="color:#00c853;">KØBEKLAR</h3>
+      <div class="val" id="etf-koeb">0</div>
+    </div>
+    <div class="card" style="border-left:3px solid #ffc107;">
+      <h3 style="color:#ffc107;">AFVENT</h3>
+      <div class="val" id="etf-afvent">0</div>
+    </div>
+  </div>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Pris</th>
+        <th>Signal</th>
+        <th>RSI</th>
+        <th>Stop</th>
+        <th>Target</th>
+      </tr>
+    </thead>
+    <tbody id="etf-body"></tbody>
+  </table>
 </div>
 
 <script>
@@ -1487,6 +1535,11 @@ function switchTab(name) {
   if (name === 'assistant') {
     updateTimestamp();
   }
+  if (name === 'etf') {
+    document.getElementById('panel-etf').classList.add('active');
+    renderETFMonitor();
+    return;
+  }
 }
 
 // ==================== PORTFOLIO ====================
@@ -1603,20 +1656,29 @@ async function loadStock(symbol) {
 // AI Assistant autocomplete
 function filterStocksAI(query) {
   const dropdown = document.getElementById('stockDropdownAI');
-  if (!query || query.length < 1) { dropdown.classList.remove('show'); return; }
+  if (!query || query.length < 1) {
+    dropdown.classList.remove('show');
+    return;
+  }
   
   const q = query.toLowerCase();
-  const matches = allStocks.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+  const matches = allStocks.filter(s => 
+    s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+  );
   
   if (matches.length === 0) {
-    dropdown.innerHTML = '<div style="padding:10px;color:#666;">Ingen resultater</div>';
+    dropdown.innerHTML = '<div style="padding:10px;color:#888;">Ingen resultater fundet</div>';
   } else {
     let html = '';
-    matches.slice(0, 15).forEach(stock => {
-      html += `<div class="stock-item" data-symbol="${stock.symbol}">
-        <span class="symbol">${stock.symbol}</span>
-        <span class="name">${stock.name}</span>
-      </div>`;
+    matches.slice(0, 20).forEach(stock => {
+      const highlighted = stock.name.replace(
+        new RegExp('(' + query + ')', 'gi'),
+        '<mark>$1</mark>'
+      );
+      html += '<div class="stock-item" data-symbol="' + stock.symbol + '">' +
+        '<span class="symbol">' + stock.symbol + '</span>' +
+        '<span class="name">' + highlighted + '</span>' +
+        '</div>';
     });
     dropdown.innerHTML = html;
   }
@@ -1625,9 +1687,9 @@ function filterStocksAI(query) {
   
   // Add click handlers
   dropdown.querySelectorAll('.stock-item').forEach(item => {
-    item.onclick = () => {
-      loadStockAI(item.dataset.symbol);
-    };
+    item.addEventListener('click', function() {
+      loadStockAI(this.dataset.symbol);
+    });
   });
 }
 
@@ -2017,18 +2079,13 @@ function updateAlarmParams() {
 }
 
 // ==================== VERSION SELECTOR ====================
-function loadVersion() {
-  const ver = document.getElementById('versionSelect').value;
-  if (ver === 'v3') {
-    // Allerede på v3
-    return;
-  }
-  // Redirect til version filer (hvis de eksisterer)
-  if (ver === 'v2') {
+function switchVersion(version) {
+  if (version === 'v2') {
     window.open('ai-trading-v2.html', '_blank');
-  } else if (ver === 'v1') {
-    window.open('ai-trading-v1.html', '_blank');
+  } else if (version === 'v1') {
+    window.open('ai-trading-assistant.html', '_blank');
   }
+  // Reset til v3
   document.getElementById('versionSelect').value = 'v3';
 }
 
@@ -2264,6 +2321,39 @@ function getSourceIcon(source) {
 }
 
 // ==================== INIT ====================
+// ==================== ETF MONITOR ====================
+const etfList = [
+  {symbol:'SPY',name:'S&P 500 ETF'},
+  {symbol:'QQQ',name:'Nasdaq 100 ETF'},
+  {symbol:'VTI',name:'Vanguard Total'},
+  {symbol:'GLD',name:'Gold ETF'},
+  {symbol:'TLT',name:'Treasury Bond'},
+  {symbol:'XLE',name:'Energy ETF'},
+  {symbol:'ARKK',name:'ARK Innovation'},
+  {symbol:'SXR8.DE',name:'iShares S&P 500'},
+  {symbol:'SWDA.L',name:'iShares MSCI World'},
+];
+
+function renderETFMonitor() {
+  let koeb=0, afvent=0;
+  let html='';
+  etfList.forEach(e => {
+    const price = Math.random() * 100 + 200;
+    const rsi = Math.random() * 40 + 30;
+    const signal = rsi < 30 ? 'KOEB' : rsi > 70 ? 'SELL' : 'AFVENT';
+    if(signal==='KOEB') koeb++;
+    if(signal==='AFVENT') afvent++;
+    const cls = signal==='KOEB' ? 'green' : signal==='SELL' ? 'red' : 'yellow';
+    html += '<tr><td><b>'+e.symbol+'</b><br><small style="color:#888">'+e.name+'</small></td><td>'+price.toFixed(2)+' DKK</td><td><span class="signal '+cls+'">'+signal+'</span></td><td>'+rsi.toFixed(1)+'</td><td>'+(price*0.95).toFixed(2)+'</td><td>'+(price*1.10).toFixed(2)+'</td></tr>';
+  });
+  document.getElementById('etf-body').innerHTML = html;
+  document.getElementById('etf-koeb').textContent = koeb;
+  document.getElementById('etf-afvent').textContent = afvent;
+}
+
+// Kald ved opstart
+renderETFMonitor();
+
 calcTotal();
 updateTimestamp();
 startAutoUpdater();
