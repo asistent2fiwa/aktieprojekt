@@ -417,6 +417,29 @@ tr.stock-row:hover { cursor: pointer; }
   background: #111;
 }
 
+.custom-add-section {
+  padding: 10px 14px;
+  border-top: 1px solid #333;
+}
+
+.custom-add-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px dashed #555;
+  color: #888;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85em;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.custom-add-btn:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
 /* ==================== MOBILE CHAT BUTTON ==================== */
 .mobile-chat-btn {
   display: none;
@@ -543,21 +566,10 @@ tr.stock-row:hover { cursor: pointer; }
   <div class="row">
     <div class="card" style="flex:0 0 calc(40% - 10px)">
       <label>Vælg Aktie</label>
-      <select id="stockSelect" onchange="loadStock()">
-        <option value="">-- Vælg --</option>
-        <option value="NVDA">NVDA - Nvidia</option>
-        <option value="TSLA">TSLA - Tesla</option>
-        <option value="AAPL">AAPL - Apple</option>
-        <option value="MSFT">MSFT - Microsoft</option>
-        <option value="AMZN">AMZN - Amazon</option>
-        <option value="NOVO">NOVO - Novo Nordisk</option>
-        <option value="VWS">VWS - Vestas</option>
-        <option value="DSV">DSV - DSV</option>
-        <option value="MAERSK">MAERSK - Maersk</option>
-        <option value="COLO">COLO - Coloplast</option>
-        <option value="XOP">XOP - OPEC ETF</option>
-        <option value="SPY">SPY - S&P 500</option>
-      </select>
+      <div class="stock-autocomplete">
+        <input type="text" id="stockSearchAI" placeholder="Søg aktie..." autocomplete="off" oninput="filterStocksAI(this.value)" onkeydown="handleKeyDownAI(event)">
+        <div class="autocomplete-dropdown" id="stockDropdownAI"></div>
+      </div>
     </div>
     <div class="card" style="flex:0 0 calc(30% - 10px)">
       <label>Aktiekurs (DKK)</label>
@@ -2146,14 +2158,14 @@ startAutoUpdater();
 
 // ==================== STOCK AUTOCOMPLETE ====================
 const allStocks = [
-  // Danske
-  { symbol: 'NOVO-B.CO', name: 'Novo Nordisk', group: '🇩🇰 Danske Aktier' },
+  // Danske aktier - Københavns Fondsbørs
+  { symbol: 'NOVO-B.CO', name: 'Novo Nordisk B', group: '🇩🇰 Danske Aktier' },
   { symbol: 'VWS.CO', name: 'Vestas Wind Systems', group: '🇩🇰 Danske Aktier' },
   { symbol: 'DSV.CO', name: 'DSV Panalpina', group: '🇩🇰 Danske Aktier' },
-  { symbol: 'MAERSK-B.CO', name: 'A.P. Møller Maersk', group: '🇩🇰 Danske Aktier' },
-  { symbol: 'COLO-B.CO', name: 'Coloplast', group: '🇩🇰 Danske Aktier' },
-  { symbol: 'PNDORA.CO', name: 'Pandora', group: '🇩🇰 Danske Aktier' },
-  { symbol: 'CARL-B.CO', name: 'Carlsberg', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'MAERSK-B.CO', name: 'A.P. Møller Maersk B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'COLO-B.CO', name: 'Coloplast B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'PNDORA.CO', name: 'PANDORA', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'CARL-B.CO', name: 'Carlsberg B', group: '🇩🇰 Danske Aktier' },
   { symbol: 'DANSKE.CO', name: 'Danske Bank', group: '🇩🇰 Danske Aktier' },
   { symbol: 'JYSK.CO', name: 'Jyske Bank', group: '🇩🇰 Danske Aktier' },
   { symbol: 'SYDB.CO', name: 'Sydbank', group: '🇩🇰 Danske Aktier' },
@@ -2162,12 +2174,34 @@ const allStocks = [
   { symbol: 'TOP.CO', name: 'Topdanmark', group: '🇩🇰 Danske Aktier' },
   { symbol: 'TRYG.CO', name: 'Tryg', group: '🇩🇰 Danske Aktier' },
   { symbol: 'NKT.CO', name: 'NKT', group: '🇩🇰 Danske Aktier' },
-  { symbol: 'ALK-B.CO', name: 'ALK-Abelló', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ALK-B.CO', name: 'ALK-Abelló B', group: '🇩🇰 Danske Aktier' },
   { symbol: 'LUN.CO', name: 'H. Lundbeck', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'AMBU-B.CO', name: 'Ambu B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'FLS.CO', name: 'FLSmidth', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'GEN.CO', name: 'Genmab', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'GMAB.CO', name: 'GN Store Nord', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ISS.CO', name: 'ISS', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ORSTED.CO', name: 'Ørsted', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ROCK-B.CO', name: 'Rockwool B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SDF.CO', name: 'Schouw & Co', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SVIK.CO', name: 'Svitzer', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'TIVPET.CO', name: 'Tivoli', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SAS.CO', name: 'SAS', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'HM-B.CO', name: 'Hummel B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ODF.CO', name: 'Odfjell', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'OPM.CO', name: 'OPM', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'RGLD.CO', name: 'Royal Gold', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'LM-B.CO', name: 'Lån & Spar Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'NKF-B.CO', name: 'Nordfyns Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'JUTJ.CO', name: 'Jutlander Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SPFO-B.CO', name: 'Sparekassen Fyn', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'TNLO-B.CO', name: 'Tønder Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'MSTYK.CO', name: 'Møns Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SBMW.CO', name: 'Spar Møns', group: '🇩🇰 Danske Aktier' },
   { symbol: 'BVNK-B.CO', name: 'Bavarian Nordic', group: '🇩🇰 Danske Aktier' },
   { symbol: 'EVAXION.CO', name: 'Evaxion Biotech', group: '🇩🇰 Danske Aktier' },
   { symbol: 'CTD.CO', name: 'CTD Holding', group: '🇩🇰 Danske Aktier' },
-  { symbol: 'DKK.CO', name: 'D.KSHolding', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ERIC-A.CO', name: 'Ericsson', group: '🇩🇰 Danske Aktier' },
   // Amerikanske
   { symbol: 'NVDA', name: 'NVIDIA', group: '🇺🇸 Amerikanske Aktier' },
   { symbol: 'TSLA', name: 'Tesla', group: '🇺🇸 Amerikanske Aktier' },
@@ -2209,6 +2243,21 @@ const allStocks = [
   { symbol: 'SLV', name: 'Sølv ETF', group: '📊 ETF\'er' },
   { symbol: 'UNG', name: 'Natural Gas ETF', group: '📊 ETF\'er' },
   { symbol: 'USO', name: 'Crude Oil ETF', group: '📊 ETF\'er' },
+  // ETF'er - Nordnet Danmark / Europa
+  { symbol: 'SXR8.DE', name: 'iShares Core S&P 500 (SXR8)', group: '📊 ETF\'er' },
+  { symbol: 'EUNA.DE', name: 'iShares MSCI Europe', group: '📊 ETF\'er' },
+  { symbol: 'IUSA.DE', name: 'iShares S&P 500', group: '📊 ETF\'er' },
+  { symbol: 'CSPX.L', name: 'iShares S&P 500 (IE)', group: '📊 ETF\'er' },
+  { symbol: 'SWDA.L', name: 'iShares MSCI World', group: '📊 ETF\'er' },
+  { symbol: 'EMM.L', name: 'iShares MSCI EM', group: '📊 ETF\'er' },
+  { symbol: 'VUAA.L', name: 'Vanguard S&P 500 (VUAA)', group: '📊 ETF\'er' },
+  { symbol: 'VWRL.L', name: 'Vanguard FTSE All-World', group: '📊 ETF\'er' },
+  { symbol: 'VWRD.L', name: 'Vanguard FTSE Dev. World', group: '📊 ETF\'er' },
+  { symbol: 'VDMW.L', name: 'Vanguard MSCI World', group: '📊 ETF\'er' },
+  { symbol: 'VFEA.L', name: 'Vanguard FTSE EM', group: '📊 ETF\'er' },
+  { symbol: 'WRD.TO', name: 'iShares World', group: '📊 ETF\'er' },
+  { symbol: 'EFA', name: 'iShares MSCI ACWI', group: '📊 ETF\'er' },
+  { symbol: 'ACWI', name: 'MSCI ACWI', group: '📊 ETF\'er' },
   // Krypto
   { symbol: 'BTC-USD', name: 'Bitcoin', group: '🪙 Kryptovaluta' },
   { symbol: 'ETH-USD', name: 'Ethereum', group: '🪙 Kryptovaluta' },
@@ -2285,6 +2334,18 @@ function filterStocks(query) {
     });
   });
 
+  // Add custom stock section at the end of dropdown
+  html += `<div class="custom-add-section">
+    <button type="button" onclick="showCustomStockInput()" class="custom-add-btn">
+      + Tilfoej egen aktie/ETF
+    </button>
+    <div id="customStockInput" style="display:none; margin-top:10px; padding:8px;">
+      <input type="text" id="customSymbol" placeholder="Yahoo symbol (f.eks. AAPL, SXR8.DE)" style="width:100%;padding:5px;margin-bottom:5px;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:4px;font-size:0.85em;">
+      <input type="text" id="customName" placeholder="Navn (f.eks. iShares S&P 500)" style="width:100%;padding:5px;margin-bottom:5px;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:4px;font-size:0.85em;">
+      <button onclick="addCustomStock()" style="padding:5px 12px;background:#00e5ff;color:#111;border:none;border-radius:4px;cursor:pointer;font-size:0.85em;font-weight:bold;">Tilfoej</button>
+    </div>
+  </div>`;
+
   if (!html) {
     dropdown.innerHTML = '<div class="optgroup-header" style="cursor:default;color:#555">Ingen resultater</div>';
   } else {
@@ -2360,6 +2421,58 @@ function selectStock(symbol) {
 
 // Opdater timestamp hvert minut
 setInterval(updateTimestamp, 60000);
+
+// Custom stock functions
+function showCustomStockInput() {
+  document.getElementById('customStockInput').style.display = 'block';
+  document.getElementById('customSymbol').focus();
+}
+
+function addCustomStock() {
+  const symbol = document.getElementById('customSymbol').value.trim().toUpperCase();
+  const name = document.getElementById('customName').value.trim();
+
+  if (!symbol) {
+    alert('Indtast Yahoo symbol');
+    return;
+  }
+
+  // Tilføj til allStocks array
+  allStocks.push({
+    symbol: symbol,
+    name: name || symbol,
+    group: '🧑 Brugerdefineret'
+  });
+
+  // Gem til localStorage
+  localStorage.setItem('customStocks', JSON.stringify(
+    allStocks.filter(s => s.group === '🧑 Brugerdefineret')
+  ));
+
+  // Vælg den nye aktie
+  selectStock(symbol);
+
+  // Reset dropdown search
+  document.getElementById('stockSearch').value = '';
+  document.getElementById('stockDropdown').classList.remove('show');
+
+  // Reset input
+  document.getElementById('customStockInput').style.display = 'none';
+  document.getElementById('customSymbol').value = '';
+  document.getElementById('customName').value = '';
+}
+
+// Load custom stocks from localStorage on init
+(function loadCustomStocks() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('customStocks') || '[]');
+    saved.forEach(s => {
+      if (!allStocks.find(existing => existing.symbol === s.symbol)) {
+        allStocks.push({ symbol: s.symbol, name: s.name, group: '🧑 Brugerdefineret' });
+      }
+    });
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>
