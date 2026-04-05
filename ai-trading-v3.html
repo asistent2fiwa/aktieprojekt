@@ -416,20 +416,19 @@ tr.stock-row:hover { cursor: pointer; }
 
 <script>
 // ==================== SESSION BESKYTTELSE ====================
+// ** MIDLERTIDIGT DEAKTIVERET - Fjern kommentarerne for at aktivere login **
 function checkSession() {
-  const session = localStorage.getItem('userSession');
-  if (!session) {
-    // Ikke logget ind - redirect til login
-    window.location.href = 'login.html';
-    return false;
-  }
-  // Vis brugerinfo i header
-  const user = JSON.parse(session);
-  const userInfo = document.getElementById('userInfo');
-  if (userInfo) {
-    userInfo.textContent = '👤 ' + (user.name || user.email);
-    userInfo.style.display = 'block';
-  }
+  // const session = localStorage.getItem('userSession');
+  // if (!session) {
+  //   window.location.href = 'login.html';
+  //   return false;
+  // }
+  // const user = JSON.parse(session);
+  // const userInfo = document.getElementById('userInfo');
+  // if (userInfo) {
+  //   userInfo.textContent = '👤 ' + (user.name || user.email);
+  //   userInfo.style.display = 'block';
+  // }
   return true;
 }
 
