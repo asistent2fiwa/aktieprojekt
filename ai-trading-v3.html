@@ -334,6 +334,89 @@ tr.stock-row:hover { cursor: pointer; }
 }
 .quick-action-btn:hover { border-color: var(--cyan); color: var(--cyan); }
 
+/* ==================== STOCK AUTOCOMPLETE ==================== */
+.stock-autocomplete {
+  position: relative;
+  width: 100%;
+  flex: 1;
+}
+
+#stockSearch {
+  width: 100%;
+  padding: 10px;
+  background: #111;
+  border: 1px solid #333;
+  color: #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.95em;
+}
+
+#stockSearch:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #1a1a1a;
+  border: 1px solid var(--cyan);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  z-index: 1000;
+  display: none;
+}
+
+.autocomplete-dropdown.show {
+  display: block;
+}
+
+.stock-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #2a2a2a;
+  display: flex;
+  justify-content: space-between;
+}
+
+.stock-item:hover,
+.stock-item.selected {
+  background: #252525;
+}
+
+.stock-item .symbol {
+  font-weight: bold;
+  color: var(--cyan);
+}
+
+.stock-item .name {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.stock-item mark {
+  background: #ffeb3b;
+  color: #000;
+}
+
+.optgroup-header {
+  padding: 8px 14px;
+  background: #111;
+  font-weight: bold;
+  color: #666;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  cursor: default;
+}
+
+.optgroup-header:hover {
+  background: #111;
+}
+
 /* ==================== MOBILE CHAT BUTTON ==================== */
 .mobile-chat-btn {
   display: none;
@@ -445,112 +528,10 @@ tr.stock-row:hover { cursor: pointer; }
     <tbody id="holdingsBody"></tbody>
   </table>
   <div id="addStockRow" style="display:flex;gap:10px;margin-top:12px;align-items:center">
-    <select id="stockSelector" style="flex:1" onchange="selectStock(this.value)">
-      <option value="">Vælg aktie...</option>
-      <optgroup label="🇩🇰 Danske Aktier">
-        <option value="NOVO-B.CO">NOVO-B - Novo Nordisk</option>
-        <option value="VWS.CO">VWS - Vestas Wind Systems</option>
-        <option value="DSV.CO">DSV - DSV Panalpina</option>
-        <option value="MAERSK-B.CO">MAERSK-B - A.P. Møller Maersk</option>
-        <option value="COLO-B.CO">COLO-B - Coloplast</option>
-        <option value="PNDORA.CO">PNDORA - Pandora</option>
-        <option value="CARL-B.CO">CARL-B - Carlsberg</option>
-        <option value="DANSKE.CO">DANSKE - Danske Bank</option>
-        <option value="JYSK.CO">JYSK - Jyske Bank</option>
-        <option value="SYDB.CO">SYDB - Sydbank</option>
-        <option value="SPNOR-B.CO">SPNOR-B - Spar Nord Bank</option>
-        <option value="ALMB.CO">ALMB - Alm. Brand</option>
-        <option value="TOP.CO">TOP - Topdanmark</option>
-        <option value="TRYG.CO">TRYG - Tryg</option>
-        <option value="NKT.CO">NKT - NKT</option>
-        <option value="ALK-B.CO">ALK-B - ALK-Abelló</option>
-        <option value="LUN.CO">LUN - H. Lundbeck</option>
-        <option value="BVNK-B.CO">BVNK-B - Bavarian Nordic</option>
-        <option value="EVAXION.CO">EVAXION - Evaxion Biotech</option>
-        <option value="CTD.CO">CTD - CTD Holding</option>
-        <option value="DKK.CO">DKK - D.KSHolding</option>
-      </optgroup>
-      <optgroup label="🇺🇸 Amerikanske Aktier">
-        <option value="NVDA">NVDA - NVIDIA</option>
-        <option value="TSLA">TSLA - Tesla</option>
-        <option value="AAPL">AAPL - Apple</option>
-        <option value="MSFT">MSFT - Microsoft</option>
-        <option value="AMZN">AMZN - Amazon</option>
-        <option value="GOOGL">GOOGL - Alphabet (Google)</option>
-        <option value="META">META - Meta Platforms</option>
-        <option value="NFLX">NFLX - Netflix</option>
-        <option value="AMD">AMD - AMD</option>
-        <option value="INTC">INTC - Intel</option>
-        <option value="CRM">CRM - Salesforce</option>
-        <option value="ORCL">ORCL - Oracle</option>
-        <option value="PYPL">PYPL - PayPal</option>
-        <option value="COIN">COIN - Coinbase</option>
-        <option value="RIVN">RIVN - Rivian</option>
-        <option value="LCID">LCID - Lucid</option>
-        <option value="PLTR">PLTR - Palantir</option>
-        <option value="SNOW">SNOW - Snowflake</option>
-        <option value="MDB">MDB - MongoDB</option>
-        <option value="SQ">SQ - Square (Block)</option>
-        <option value="UBER">UBER - Uber</option>
-        <option value="ABNB">ABNB - Airbnb</option>
-        <option value="PYSC">PYSC - Palantir (ny)</option>
-      </optgroup>
-      <optgroup label="📊 ETF'er">
-        <option value="SPY">SPY - S&P 500 ETF</option>
-        <option value="QQQ">QQQ - Nasdaq 100 ETF</option>
-        <option value="VTI">VTI - Vanguard Total Stock Market</option>
-        <option value="IWM">IWM - Russell 2000</option>
-        <option value="DIA">DIA - Dow Jones ETF</option>
-        <option value="GLD">GLD - Guld ETF</option>
-        <option value="TLT">TLT - Treasury Bond ETF</option>
-        <option value="VNQ">VNQ - Real Estate ETF</option>
-        <option value="XLE">XLE - Energy ETF</option>
-        <option value="ARKK">ARKK - ARK Innovation ETF</option>
-        <option value="MSOS">MSOS - US Cannabis ETF</option>
-        <option value="BITO">BITO - Bitcoin ETF (ProShares)</option>
-        <option value="ETHA">ETHA - Ethereum ETF</option>
-        <option value="IAU">IAU - Guld (iShares)</option>
-        <option value="SLV">SLV - Sølv ETF</option>
-        <option value="UNG">UNG - Natural Gas ETF</option>
-        <option value="USO">USO - Crude Oil ETF</option>
-      </optgroup>
-      <optgroup label="🪙 Kryptovaluta">
-        <option value="BTC-USD">BTC - Bitcoin</option>
-        <option value="ETH-USD">ETH - Ethereum</option>
-        <option value="SOL-USD">SOL - Solana</option>
-        <option value="BNB-USD">BNB - Binance Coin</option>
-        <option value="XRP-USD">XRP - Ripple</option>
-        <option value="ADA-USD">ADA - Cardano</option>
-        <option value="DOGE-USD">DOGE - Dogecoin</option>
-        <option value="DOT-USD">DOT - Polkadot</option>
-        <option value="AVAX-USD">AVAX - Avalanche</option>
-        <option value="LINK-USD">LINK - Chainlink</option>
-        <option value="MATIC-USD">MATIC - Polygon</option>
-        <option value="UNI-USD">UNI - Uniswap</option>
-      </optgroup>
-      <optgroup label="🌍 Europæiske Aktier">
-        <option value="ASML.AS">ASML - Nederlandene</option>
-        <option value="SAP.DE">SAP - Tyskland (Frankfurt)</option>
-        <option value="ABB.SW">ABB - Schweiz (SIX)</option>
-        <option value="NESN.SW">NESN - Nestlé (Schweiz)</option>
-        <option value="SHEL.L">SHEL - Shell (Holland/UK)</option>
-        <option value="ULVR.L">ULVR - Unilever (Holland/UK)</option>
-        <option value="TTE.PA">TTE - TotalEnergies (Frankrig)</option>
-        <option value="MC.PA">MC - LVMH (Frankrig)</option>
-        <option value="AIR.PA">AIR - Airbus (Frankrig)</option>
-        <option value="SIE.DE">SIE - Siemens (Tyskland)</option>
-        <option value="BMWG.DE">BMWG - BMW (Tyskland)</option>
-        <option value="VOW3.DE">VOW3 - Volkswagen (Tyskland)</option>
-        <option value="ALV.DE">ALV - Allianz (Tyskland)</option>
-        <option value="BAS.DE">BAS - BASF (Tyskland)</option>
-        <option value="BNP.PA">BNP - BNP Paribas</option>
-        <option value="HSBA.L">HSBA - HSBC</option>
-        <option value="AZN.L">AZN - AstraZeneca</option>
-        <option value="NVO">NVO - Novo Nordisk (US)</option>
-        <option value="ERIC-A.CO">ERIC-A - Ericsson</option>
-        <option value="KTB.ST">KTB - Klarna</option>
-      </optgroup>
-    </select>
+    <div class="stock-autocomplete">
+      <input type="text" id="stockSearch" placeholder="Søg aktie..." autocomplete="off">
+      <div class="autocomplete-dropdown" id="stockDropdown"></div>
+    </div>
     <input type="number" id="stockQty" placeholder="Antal" style="width:80px" min="1">
     <input type="number" id="stockBuyPrice" placeholder="Købspris" style="width:100px">
     <button class="trade-btn" onclick="addHoldingFromDropdown()">+ Tilføj</button>
@@ -1444,10 +1425,12 @@ function renderHoldings() {
   });
 }
 
+let lastSelectedSymbol = '';
+
 function addHoldingFromDropdown() {
-  const sel = document.getElementById('stockSelector').value;
+  const sel = lastSelectedSymbol;
   if (!sel) {
-    alert('Vælg venligst en aktie fra dropdown-menuen.');
+    alert('Vælg venligst en aktie fra søgefeltet.');
     return;
   }
   const qty = parseFloat(document.getElementById('stockQty').value) || 1;
@@ -1456,7 +1439,8 @@ function addHoldingFromDropdown() {
   const buyPrice = buyPriceRaw || s.price * (fxRates[s.currency] || 1);
   holdings.push({ ticker: sel, qty, buyPrice });
   // Reset felter
-  document.getElementById('stockSelector').value = '';
+  lastSelectedSymbol = '';
+  document.getElementById('stockSearch').value = '';
   document.getElementById('stockQty').value = '';
   document.getElementById('stockBuyPrice').value = '';
   calcTotal();
@@ -2159,6 +2143,220 @@ function getSourceIcon(source) {
 calcTotal();
 updateTimestamp();
 startAutoUpdater();
+
+// ==================== STOCK AUTOCOMPLETE ====================
+const allStocks = [
+  // Danske
+  { symbol: 'NOVO-B.CO', name: 'Novo Nordisk', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'VWS.CO', name: 'Vestas Wind Systems', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'DSV.CO', name: 'DSV Panalpina', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'MAERSK-B.CO', name: 'A.P. Møller Maersk', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'COLO-B.CO', name: 'Coloplast', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'PNDORA.CO', name: 'Pandora', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'CARL-B.CO', name: 'Carlsberg', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'DANSKE.CO', name: 'Danske Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'JYSK.CO', name: 'Jyske Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SYDB.CO', name: 'Sydbank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SPNOR-B.CO', name: 'Spar Nord Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ALMB.CO', name: 'Alm. Brand', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'TOP.CO', name: 'Topdanmark', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'TRYG.CO', name: 'Tryg', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'NKT.CO', name: 'NKT', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ALK-B.CO', name: 'ALK-Abelló', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'LUN.CO', name: 'H. Lundbeck', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'BVNK-B.CO', name: 'Bavarian Nordic', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'EVAXION.CO', name: 'Evaxion Biotech', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'CTD.CO', name: 'CTD Holding', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'DKK.CO', name: 'D.KSHolding', group: '🇩🇰 Danske Aktier' },
+  // Amerikanske
+  { symbol: 'NVDA', name: 'NVIDIA', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'TSLA', name: 'Tesla', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'AAPL', name: 'Apple', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'MSFT', name: 'Microsoft', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'AMZN', name: 'Amazon', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'GOOGL', name: 'Alphabet (Google)', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'META', name: 'Meta Platforms', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'NFLX', name: 'Netflix', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'AMD', name: 'AMD', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'INTC', name: 'Intel', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'CRM', name: 'Salesforce', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'ORCL', name: 'Oracle', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'PYPL', name: 'PayPal', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'COIN', name: 'Coinbase', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'RIVN', name: 'Rivian', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'LCID', name: 'Lucid', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'PLTR', name: 'Palantir', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'SNOW', name: 'Snowflake', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'MDB', name: 'MongoDB', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'SQ', name: 'Square (Block)', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'UBER', name: 'Uber', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'ABNB', name: 'Airbnb', group: '🇺🇸 Amerikanske Aktier' },
+  // ETF'er
+  { symbol: 'SPY', name: 'S&P 500 ETF', group: '📊 ETF\'er' },
+  { symbol: 'QQQ', name: 'Nasdaq 100 ETF', group: '📊 ETF\'er' },
+  { symbol: 'VTI', name: 'Vanguard Total Stock Market', group: '📊 ETF\'er' },
+  { symbol: 'IWM', name: 'Russell 2000', group: '📊 ETF\'er' },
+  { symbol: 'DIA', name: 'Dow Jones ETF', group: '📊 ETF\'er' },
+  { symbol: 'GLD', name: 'Guld ETF', group: '📊 ETF\'er' },
+  { symbol: 'TLT', name: 'Treasury Bond ETF', group: '📊 ETF\'er' },
+  { symbol: 'VNQ', name: 'Real Estate ETF', group: '📊 ETF\'er' },
+  { symbol: 'XLE', name: 'Energy ETF', group: '📊 ETF\'er' },
+  { symbol: 'ARKK', name: 'ARK Innovation ETF', group: '📊 ETF\'er' },
+  { symbol: 'MSOS', name: 'US Cannabis ETF', group: '📊 ETF\'er' },
+  { symbol: 'BITO', name: 'Bitcoin ETF (ProShares)', group: '📊 ETF\'er' },
+  { symbol: 'ETHA', name: 'Ethereum ETF', group: '📊 ETF\'er' },
+  { symbol: 'IAU', name: 'Guld (iShares)', group: '📊 ETF\'er' },
+  { symbol: 'SLV', name: 'Sølv ETF', group: '📊 ETF\'er' },
+  { symbol: 'UNG', name: 'Natural Gas ETF', group: '📊 ETF\'er' },
+  { symbol: 'USO', name: 'Crude Oil ETF', group: '📊 ETF\'er' },
+  // Krypto
+  { symbol: 'BTC-USD', name: 'Bitcoin', group: '🪙 Kryptovaluta' },
+  { symbol: 'ETH-USD', name: 'Ethereum', group: '🪙 Kryptovaluta' },
+  { symbol: 'SOL-USD', name: 'Solana', group: '🪙 Kryptovaluta' },
+  { symbol: 'BNB-USD', name: 'Binance Coin', group: '🪙 Kryptovaluta' },
+  { symbol: 'XRP-USD', name: 'Ripple', group: '🪙 Kryptovaluta' },
+  { symbol: 'ADA-USD', name: 'Cardano', group: '🪙 Kryptovaluta' },
+  { symbol: 'DOGE-USD', name: 'Dogecoin', group: '🪙 Kryptovaluta' },
+  { symbol: 'DOT-USD', name: 'Polkadot', group: '🪙 Kryptovaluta' },
+  { symbol: 'AVAX-USD', name: 'Avalanche', group: '🪙 Kryptovaluta' },
+  { symbol: 'LINK-USD', name: 'Chainlink', group: '🪙 Kryptovaluta' },
+  { symbol: 'MATIC-USD', name: 'Polygon', group: '🪙 Kryptovaluta' },
+  { symbol: 'UNI-USD', name: 'Uniswap', group: '🪙 Kryptovaluta' },
+  // Europæiske
+  { symbol: 'ASML.AS', name: 'ASML (Nederlandene)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'SAP.DE', name: 'SAP (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'ABB.SW', name: 'ABB (Schweiz)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'NESN.SW', name: 'Nestlé (Schweiz)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'SHEL.L', name: 'Shell (Holland/UK)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'ULVR.L', name: 'Unilever (Holland/UK)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'TTE.PA', name: 'TotalEnergies (Frankrig)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'MC.PA', name: 'LVMH (Frankrig)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'AIR.PA', name: 'Airbus (Frankrig)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'SIE.DE', name: 'Siemens (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'BMWG.DE', name: 'BMW (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'VOW3.DE', name: 'Volkswagen (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'ALV.DE', name: 'Allianz (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'BAS.DE', name: 'BASF (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'BNP.PA', name: 'BNP Paribas', group: '🌍 Europæiske Aktier' },
+  { symbol: 'HSBA.L', name: 'HSBC', group: '🌍 Europæiske Aktier' },
+  { symbol: 'AZN.L', name: 'AstraZeneca', group: '🌍 Europæiske Aktier' },
+  { symbol: 'NVO', name: 'Novo Nordisk (US)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'ERIC-A.CO', name: 'Ericsson', group: '🌍 Europæiske Aktier' },
+  { symbol: 'KTB.ST', name: 'Klarna', group: '🌍 Europæiske Aktier' }
+];
+
+let selectedIndex = -1;
+
+function filterStocks(query) {
+  const dropdown = document.getElementById('stockDropdown');
+  if (!query) {
+    dropdown.classList.remove('show');
+    return;
+  }
+
+  const q = query.toLowerCase();
+  const matches = allStocks.filter(s =>
+    s.symbol.toLowerCase().includes(q) ||
+    s.name.toLowerCase().includes(q)
+  );
+
+  // Group matches
+  const groups = {};
+  matches.forEach(m => {
+    if (!groups[m.group]) groups[m.group] = [];
+    groups[m.group].push(m);
+  });
+
+  // Build HTML
+  let html = '';
+  Object.keys(groups).forEach(group => {
+    html += `<div class="optgroup-header">${group}</div>`;
+    groups[group].forEach(stock => {
+      const highlighted = stock.name.replace(
+        new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+        '<mark>$1</mark>'
+      );
+      html += `
+        <div class="stock-item" data-symbol="${stock.symbol}">
+          <span class="symbol">${stock.symbol}</span>
+          <span class="name">${highlighted}</span>
+        </div>
+      `;
+    });
+  });
+
+  if (!html) {
+    dropdown.innerHTML = '<div class="optgroup-header" style="cursor:default;color:#555">Ingen resultater</div>';
+  } else {
+    dropdown.innerHTML = html;
+  }
+  dropdown.classList.add('show');
+  selectedIndex = -1;
+
+  // Add click handlers
+  document.querySelectorAll('.stock-item').forEach(item => {
+    item.addEventListener('click', () => {
+      selectStock(item.dataset.symbol);
+      document.getElementById('stockSearch').value = '';
+      dropdown.classList.remove('show');
+    });
+  });
+}
+
+function handleKeyDown(e) {
+  const items = document.querySelectorAll('.stock-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+    updateSelection(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    selectedIndex = Math.max(selectedIndex - 1, 0);
+    updateSelection(items);
+  } else if (e.key === 'Enter' && selectedIndex >= 0) {
+    e.preventDefault();
+    selectStock(items[selectedIndex].dataset.symbol);
+    document.getElementById('stockSearch').value = '';
+    document.getElementById('stockDropdown').classList.remove('show');
+  }
+}
+
+function updateSelection(items) {
+  items.forEach((item, i) => {
+    item.classList.toggle('selected', i === selectedIndex);
+  });
+  if (selectedIndex >= 0) {
+    items[selectedIndex].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// Event listeners
+document.getElementById('stockSearch').addEventListener('input', e => {
+  filterStocks(e.target.value);
+});
+
+document.getElementById('stockSearch').addEventListener('keydown', handleKeyDown);
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.stock-autocomplete')) {
+    document.getElementById('stockDropdown').classList.remove('show');
+  }
+});
+
+// selectStock – called when user picks from dropdown (fills qty/price fields)
+function selectStock(symbol) {
+  const s = stocks[symbol];
+  if (!s) return;
+  const fxRate = fxRates[s.currency] || 1;
+  const priceInDKK = (s.price * fxRate).toFixed(2);
+  lastSelectedSymbol = symbol;
+  document.getElementById('stockQty').value = '';
+  document.getElementById('stockBuyPrice').value = priceInDKK;
+  document.getElementById('stockQty').focus();
+}
 
 // Opdater timestamp hvert minut
 setInterval(updateTimestamp, 60000);
