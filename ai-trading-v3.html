@@ -369,6 +369,7 @@ tr.stock-row:hover { cursor: pointer; }
   <span>AI Trading Assistant v3</span>
   <div class="header-right">
     <div class="timestamp" id="lastUpdate">Opdateret: --</div>
+    <button onclick="manualRefreshAll()" id="refreshAllBtn" style="background:#1e1e1e; border:1px solid var(--cyan); color:var(--cyan); padding:5px 12px; border-radius:20px; cursor:pointer; font-size:0.78em;">🔄 Opdater nu</button>
     <div id="userInfo" style="display:none; font-size:0.8em; color:#888;"></div>
     <button id="logoutBtn" onclick="logout()" style="background:#333; border:1px solid #555; color:#e0e0e0; padding:6px 14px; border-radius:20px; cursor:pointer; font-size:0.8em;">Logout</button>
     <select class="version-select" id="versionSelect" onchange="loadVersion()">
@@ -411,24 +412,19 @@ tr.stock-row:hover { cursor: pointer; }
   <div class="row">
     <div class="card" style="flex:0 0 calc(25% - 12px)">
       <label class="tooltip">Max tab per trade<span class="tooltip-text">Alarm udløses hvis tab på én handel overstiger dette beløb. Beskytter din portefølje mod store tab.</span></label>
-      <input type="number" id="maxLoss" value="2" step="0.1" oninput="calcTotal()"> %
+      <input type="number" id="maxLoss" value="2" step="0.1" min="0" max="100" oninput="calcTotal()"> %
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
       <label class="tooltip">Stop-loss<span class="tooltip-text">Automatisk salg hvis kursen falder X% fra købspris. Stop-loss止损.</span></label>
-      <input type="number" id="stopLoss" value="-5" step="0.1" oninput="calcTotal()"> %
+      <input type="number" id="stopLoss" value="-5" step="0.1" min="-50" max="0" oninput="calcTotal()"> %
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
       <label class="tooltip">Kelly %<span class="tooltip-text">Kelly Criterion = vindende probability × gevinst/gennemsnit - tab/gennemsnit.<br>Bruges til position sizing. Anbefales max 10-15% for sikker trading.</span></label>
-      <input type="number" id="kelly" value="10" step="0.5" oninput="calcTotal()"> %
+      <input type="number" id="kelly" value="10" step="0.5" min="0" max="100" oninput="calcTotal()"> %
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
       <label>Risk/Reward</label>
-      <select id="rr" onchange="calcTotal()">
-        <option value="1">1:1</option>
-        <option value="2">1:2</option>
-        <option value="3" selected>1:3</option>
-        <option value="4">1:4</option>
-      </select>
+      <input type="number" id="rr" value="3" min="0.1" max="10" step="0.1" oninput="calcTotal()">
     </div>
   </div>
 
@@ -440,6 +436,7 @@ tr.stock-row:hover { cursor: pointer; }
         <th>Stk</th>
         <th>Købspris</th>
         <th>Nu</th>
+        <th>Daglig</th>
         <th>+/-%</th>
         <th>Værdi</th>
         <th></th>
@@ -515,6 +512,41 @@ tr.stock-row:hover { cursor: pointer; }
   <!-- Knap til at tilføje alarm direkte fra AI-assistent -->
   <button class="trade-btn yellow" onclick="addAlarmFromAssistant()" style="margin-bottom:10px">🔔 + Tilføj Alarm</button>
 
+  <!-- DAGLIG / NUVÆRENDE DATA SEKTION -->
+  <div class="section-title">📊 Nuværende / Daglig Data</div>
+  <div class="row" id="dailyDataRow">
+    <div class="card" style="flex:0 0 calc(16% - 10px)">
+      <h3>📍 Åben</h3>
+      <div class="val" id="dailyOpen">--</div>
+    </div>
+    <div class="card" style="flex:0 0 calc(16% - 10px)">
+      <h3>📈 Højeste</h3>
+      <div class="val" id="dailyHigh">--</div>
+    </div>
+    <div class="card" style="flex:0 0 calc(16% - 10px)">
+      <h3>📉 Laveste</h3>
+      <div class="val" id="dailyLow">--</div>
+    </div>
+    <div class="card" style="flex:0 0 calc(16% - 10px)">
+      <h3>🔒 Lukket (I går)</h3>
+      <div class="val" id="dailyPrevClose">--</div>
+    </div>
+    <div class="card" style="flex:0 0 calc(16% - 10px)">
+      <h3>📊 Volume</h3>
+      <div class="val" id="dailyVolume">--</div>
+    </div>
+    <div class="card" style="flex:0 0 calc(20% - 10px)">
+      <h3>💹 Ændring I Dag</h3>
+      <div class="val pos" id="dailyChangeBox">--</div>
+    </div>
+  </div>
+
+  <!-- NYHEDER SEKTION -->
+  <div class="section-title">📰 Seneste Nyheder</div>
+  <div id="newsSection">
+    <div id="newsList" style="font-size:0.85em;color:#666;padding:8px 0;">Indlæser nyheder...</div>
+  </div>
+
   <div id="analysisBox" class="analysis-box"></div>
 
   <div class="section-title">📈 Tekniske Indikatorer</div>
@@ -556,15 +588,15 @@ tr.stock-row:hover { cursor: pointer; }
   <div class="row">
     <div class="card" style="flex:0 0 calc(25% - 12px)">
       <label class="tooltip">RSI Overkøbt (>70)<span class="tooltip-text">RSI måler hastigheden af kursændringer. Over 70 = overkøbt, mulig korrektion på vej.<br><a href="https://www.investopedia.com/terms/r/rsi.asp" target="_blank">Læs mere på Investopedia ↗</a></span></label>
-      <input type="number" id="rsiOverbought" value="70" oninput="updateAlarmParams()">
+      <input type="number" id="rsiOverbought" value="70" min="0" max="100" step="1" oninput="updateAlarmParams()">
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
       <label class="tooltip">RSI Oversolgt (<30)<span class="tooltip-text">RSI under 30 = oversolgt, mulig optur på vej. Overvej at købe.</span></label>
-      <input type="number" id="rsiOversold" value="30" oninput="updateAlarmParams()">
+      <input type="number" id="rsiOversold" value="30" min="0" max="100" step="1" oninput="updateAlarmParams()">
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
       <label>Kurs % ændring alarm</label>
-      <input type="number" id="pctChangeAlarm" value="5" step="0.5" oninput="updateAlarmParams()"> %
+      <input type="number" id="pctChangeAlarm" value="5" step="0.5" min="0" max="100" oninput="updateAlarmParams()"> %
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
       <label>Auto-alarm på holdings</label>
@@ -682,20 +714,44 @@ let alarmParams = {
   autoAlarmHoldings: true
 };
 
-// ==================== YAHOO FINANCE API ====================
-async function fetchStockPrice(symbol) {
+// ==================== YAHOO FINANCE API (FULL) ====================
+async function fetchYahooPrice(symbol) {
   try {
-    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`);
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
+    const response = await fetch(url);
     const data = await response.json();
     if (data.chart && data.chart.result && data.chart.result[0]) {
-      const price = data.chart.result[0].meta.regularMarketPrice;
-      const currency = data.chart.result[0].meta.currency || 'USD';
-      return { price, currency, success: true };
+      const meta = data.chart.result[0].meta;
+      const result = data.chart.result[0];
+      // Hent OHLCV candle data fra sidste handelsdag
+      let open = null, high = null, low = null, volume = null;
+      if (result.timestamp && result.timestamp.length > 0) {
+        const lastIdx = result.timestamp.length - 1;
+        const quote = result.indicators && result.indicators.quote && result.indicators.quote[0];
+        if (quote) {
+          open = quote.open && quote.open[lastIdx];
+          high = quote.high && quote.high[lastIdx];
+          low = quote.low && quote.low[lastIdx];
+          volume = quote.volume && quote.volume[lastIdx];
+        }
+      }
+      return {
+        price: meta.regularMarketPrice,
+        prevClose: meta.previousClose,
+        currency: meta.currency || 'USD',
+        marketState: meta.marketState || 'CLOSED',
+        timestamp: meta.regularMarketTime,
+        open: open,
+        high: high,
+        low: low,
+        volume: volume,
+        success: true
+      };
     }
   } catch (error) {
-    console.error('Yahoo fetch error:', error);
+    console.error('Yahoo error:', error);
+    return { success: false };
   }
-  return { price: null, success: false };
 }
 
 async function fetchAlphaVantage(symbol, apiKey) {
@@ -712,8 +768,8 @@ async function fetchAlphaVantage(symbol, apiKey) {
 }
 
 async function getStockPrice(symbol) {
-  // Prøv Yahoo først
-  let result = await fetchStockPrice(symbol);
+  // Prøv Yahoo Finance med full metadata
+  let result = await fetchYahooPrice(symbol);
   if (result.success) return result;
   // Fallback til Alpha Vantage
   const apiKey = localStorage.getItem('ALPHA_VANTAGE_KEY');
@@ -722,6 +778,92 @@ async function getStockPrice(symbol) {
     if (result.success) return result;
   }
   return { price: null, success: false, fallback: true };
+}
+
+// ==================== NYHEDER FRA YAHOO FINANCE ====================
+async function fetchStockNews(symbol) {
+  try {
+    const response = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${symbol}&newsType=standard`);
+    const data = await response.json();
+    if (data.news && data.news.length > 0) {
+      return data.news.slice(0, 3).map(item => ({
+        title: item.title,
+        link: item.link,
+        source: item.source,
+        time: item.providerPublishTime
+      }));
+    }
+  } catch (error) {
+    return [];
+  }
+  return [];
+}
+
+// ==================== AUTO-UPDATER ====================
+let autoUpdateInterval = null;
+const AUTO_UPDATE_MS = 5 * 60 * 1000; // 5 minutter
+
+function startAutoUpdater() {
+  if (autoUpdateInterval) clearInterval(autoUpdateInterval);
+  autoUpdateInterval = setInterval(() => {
+    autoRefreshCurrentStock();
+  }, AUTO_UPDATE_MS);
+}
+
+function stopAutoUpdater() {
+  if (autoUpdateInterval) {
+    clearInterval(autoUpdateInterval);
+    autoUpdateInterval = null;
+  }
+}
+
+async function autoRefreshCurrentStock() {
+  const ticker = document.getElementById('stockSelect').value;
+  if (!ticker) return;
+  await fetchAndUpdatePrice(ticker);
+  await loadStockNews(ticker);
+  // Opdater også beholdningernes priser
+  await refreshAllHoldingsPrices();
+  calcTotal();
+  updateTimestamp();
+}
+
+async function refreshAllHoldingsPrices() {
+  const tickers = [...new Set(holdings.map(h => h.ticker))];
+  await Promise.all(tickers.map(async ticker => {
+    const result = await fetchYahooPrice(ticker);
+    if (result.success && result.price) {
+      if (stocks[ticker]) {
+        stocks[ticker].price = result.price;
+        stocks[ticker].currency = result.currency;
+        if (result.prevClose) {
+          stocks[ticker].change = parseFloat(((result.price - result.prevClose) / result.prevClose * 100).toFixed(2));
+        }
+      }
+    }
+  }));
+}
+
+function manualRefreshAll() {
+  const btn = document.getElementById('refreshAllBtn');
+  if (btn) {
+    btn.textContent = '⏳ Opdaterer...';
+    btn.disabled = true;
+  }
+  const ticker = document.getElementById('stockSelect').value;
+  (async () => {
+    if (ticker) {
+      await fetchAndUpdatePrice(ticker);
+      await loadStockNews(ticker);
+    }
+    await refreshAllHoldingsPrices();
+    calcTotal();
+    updateTimestamp();
+    if (btn) {
+      btn.textContent = '🔄 Opdater nu';
+      btn.disabled = false;
+    }
+  })();
 }
 
 function refreshPrice() {
@@ -748,6 +890,57 @@ async function fetchAndUpdatePrice(ticker) {
     if (stocks[ticker]) {
       stocks[ticker].price = result.price;
       stocks[ticker].currency = result.currency;
+      // Beregn daglig ændring hvis prevClose er tilgængelig
+      if (result.prevClose) {
+        const pctChange = ((result.price - result.prevClose) / result.prevClose * 100);
+        stocks[ticker].change = parseFloat(pctChange.toFixed(2));
+        stocks[ticker].prevClose = result.prevClose;
+      }
+    }
+
+    // Opdater daglig data sektion med OHLCV
+    const fxRateForUI = fxRate;
+    if (result.prevClose) {
+      const pctChange = ((result.price - result.prevClose) / result.prevClose * 100).toFixed(2);
+      const changeEl = document.getElementById('dailyChangeBox');
+      if (changeEl) {
+        const sign = pctChange >= 0 ? '+' : '';
+        const changeInDKK = ((result.price - result.prevClose) * fxRateForUI).toFixed(0);
+        changeEl.innerHTML = `${sign}${pctChange}%<br><span style="font-size:0.75em;color:#aaa">${changeInDKK >= 0 ? '+' : ''}${parseInt(changeInDKK).toLocaleString('da-DK')} DKK</span>`;
+        changeEl.className = 'val ' + (pctChange >= 0 ? 'pos' : 'neg');
+      }
+    }
+    // Prev close (yesterday's close)
+    if (result.prevClose) {
+      const prevEl = document.getElementById('dailyPrevClose');
+      if (prevEl) prevEl.textContent = (result.prevClose * fxRateForUI).toFixed(2);
+    }
+    // Open
+    if (result.open) {
+      const openEl = document.getElementById('dailyOpen');
+      if (openEl) openEl.textContent = (result.open * fxRateForUI).toFixed(2);
+    }
+    // High
+    if (result.high) {
+      const highEl = document.getElementById('dailyHigh');
+      if (highEl) highEl.textContent = (result.high * fxRateForUI).toFixed(2);
+    }
+    // Low
+    if (result.low) {
+      const lowEl = document.getElementById('dailyLow');
+      if (lowEl) lowEl.textContent = (result.low * fxRateForUI).toFixed(2);
+    }
+    // Volume
+    if (result.volume) {
+      const volEl = document.getElementById('dailyVolume');
+      if (volEl) {
+        const volStr = result.volume >= 1e6
+          ? (result.volume / 1e6).toFixed(1) + 'M'
+          : result.volume >= 1e3
+            ? (result.volume / 1e3).toFixed(0) + 'K'
+            : result.volume.toLocaleString('da-DK');
+        volEl.textContent = volStr;
+      }
     }
 
     const flag = result.currency === 'USD' ? '💵' : result.currency === 'DKK' ? '🇩🇰' : '💱';
@@ -925,11 +1118,15 @@ function renderHoldings() {
     const currencyIcon = s.currency !== 'DKK' ? ` <span class="info-badge">${s.currency}</span>` : '';
     
     // Kun aktienavnet (IKKE købspris feltet) skal linke til AI-assistent
+    const dailyChangePct = s.change || 0;
+    const dailyChangeDKK = (h.qty * priceInDKK * dailyChangePct / 100);
+    const dailyCls = dailyChangePct >= 0 ? 'pos' : 'neg';
     tbody.innerHTML += `<tr class="stock-row">
       <td onclick="analyzeStock('${h.ticker}')" style="cursor:pointer"><b>${h.ticker}</b><span style="color:#888;font-size:0.8em"> - ${s.name}</span>${currencyIcon}</td>
       <td><input type="number" value="${h.qty}" style="width:60px;background:#111;border:1px solid #333;color:#fff;padding:3px 6px;border-radius:3px" onchange="holdings[${i}].qty=parseFloat(this.value);calcTotal()"></td>
       <td><input type="number" value="${h.buyPrice}" style="width:70px;background:#111;border:1px solid #333;color:#fff;padding:3px 6px;border-radius:3px" onchange="holdings[${i}].buyPrice=parseFloat(this.value);calcTotal()"></td>
       <td>${priceInDKK.toFixed(0)}</td>
+      <td class="${dailyCls}">${dailyChangePct >= 0 ? '+' : ''}${dailyChangePct.toFixed(1)}%<br><span style="font-size:0.72em;color:#888">${dailyChangeDKK >= 0 ? '+' : ''}${dailyChangeDKK.toLocaleString('da-DK', {minimumFractionDigits:0})} DKK</span></td>
       <td class="${cls}">${pnl >= 0 ? '+' : ''}${pnl}%</td>
       <td>${val.toLocaleString('da-DK', {minimumFractionDigits:0})} DKK</td>
       <td><button onclick="event.stopPropagation();holdings.splice(${i},1);calcTotal()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.2em">×</button></td>
@@ -966,12 +1163,26 @@ async function loadStock() {
   // Sæt valutakurs automatisk
   document.getElementById('currencySelect').value = s.currency;
   document.getElementById('fxRate').value = fxRate.toFixed(2);
+
+  // Nulstil daglig data
+  resetDailyDataUI();
   
   // Prøv at hente live pris først
   await fetchAndUpdatePrice(sel);
   
+  // Hent nyheder
+  await loadStockNews(sel);
+  
   renderIndicators(sel);
   calcRec();
+}
+
+function resetDailyDataUI() {
+  const fields = ['dailyOpen','dailyHigh','dailyLow','dailyPrevClose','dailyVolume','dailyChangeBox'];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '--'; el.className = 'val'; }
+  });
 }
 
 function renderIndicators(ticker) {
@@ -1028,7 +1239,7 @@ function calcRec() {
   const kelly = parseFloat(document.getElementById('kelly').value) / 100;
   const stopLoss = parseFloat(document.getElementById('stopLoss').value) / 100;
   const maxLoss = parseFloat(document.getElementById('maxLoss').value) / 100;
-  const rr = parseInt(document.getElementById('rr').value);
+  const rr = parseFloat(document.getElementById('rr').value) || 1;
   
   const s = stocks[ticker];
   const rsi = s ? s.rsi : 50;
@@ -1074,6 +1285,42 @@ function calcRec() {
     recCls = 'sell';
   }
   
+  // === FORMEL VISNING ===
+  const kellyPct = (kelly * 100).toFixed(1);
+  const kellyPosRounded = posSize.kellyPos;
+  const rrRounded = rr.toFixed(1);
+  const formulaBox = `<div class="fee-box" style="border-color:var(--cyan);margin-top:8px">
+    <div style="font-size:0.78em;color:var(--cyan);margin-bottom:6px"><b>📐 Beregningsformel</b></div>
+    <div style="font-size:0.82em;color:#ccc;margin-bottom:4px"><b>Anbefaling = Kelly% × Position × Risk/Reward</b></div>
+    <div style="font-size:0.8em;color:#888">Eksempel: <b>${kellyPct}%</b> × <b>${kellyPosRounded.toLocaleString('da-DK')}</b> × <b>${rrRounded}</b> = <b style="color:var(--green)">${kellyPosRounded.toLocaleString('da-DK')} DKK</b> max investering</div>
+    <div style="font-size:0.72em;color:#555;margin-top:4px">Kelly ${kellyPct}% × Position ${kellyPosRounded.toLocaleString('da-DK')} DKK × R/R 1:${rrRounded}</div>
+  </div>`;
+
+  // === BALANCE CHECK ADVARSLER ===
+  const recommendation = posSize.kellyPos;
+  const fee = cost1.fee;
+  const feePct = priceInput > 0 ? (fee / (priceInput * 1) * 100) : 0;
+  let balanceWarnings = '';
+
+  if (recommendation > 0 && recommendation < 500) {
+    balanceWarnings += `<div class="alarm-item" style="border-color:var(--yellow);margin-top:8px">
+      <div class="title" style="color:var(--yellow)">⚠️ Minimumshandel</div>
+      <div class="desc">Anbefaling på kun <b>${recommendation.toLocaleString('da-DK')} DKK</b> er under 500 DKK. Gebyrer (${fee.toLocaleString('da-DK')} DKK) vil udgøre for meget af positionen.</div>
+    </div>`;
+  }
+  if (recommendation > cash) {
+    balanceWarnings += `<div class="alarm-item critical" style="margin-top:8px">
+      <div class="title">🚨 Ikke nok likviditet</div>
+      <div class="desc">Anbefaling på <b>${recommendation.toLocaleString('da-DK')} DKK</b> overstiger din kontantbeholdning på <b>${cash.toLocaleString('da-DK')} DKK</b>. Du har ikke råd til denne position.</div>
+    </div>`;
+  }
+  if (feePct > 5) {
+    balanceWarnings += `<div class="alarm-item" style="border-color:var(--orange);margin-top:8px">
+      <div class="title" style="color:var(--orange)">💸 Høje gebyrer</div>
+      <div class="desc">Gebyr på <b>${fee.toLocaleString('da-DK')} DKK</b> udgør <b>${feePct.toFixed(1)}%</b> af positionen (>5%). Overvej et større køb for at reducere gebyrpåvirkningen.</div>
+    </div>`;
+  }
+
   // Fee breakdown HTML – viser gebyrformlen tydeligt
   // Formel: Gebyr = max(25 DKK, 0.15% × tradeValue), extra 0.11% hvis outsideNordnet
   let feeBox = `<div class="fee-box">
@@ -1100,6 +1347,8 @@ function calcRec() {
     <h3>💡 ${ticker} ANALYSE <span style="color:#888;font-size:0.7em">${s.name}</span> ${currencyIndicator}</h3>
     <div class="meta">💰 KONTANT: ${cash.toLocaleString('da-DK')} DKK &nbsp;|&nbsp; RSI: ${rsi} (${rsiZone})</div>
     <div class="rec ${recCls}">📊 ANBEFALING: ${recText}</div>
+    ${formulaBox}
+    ${balanceWarnings}
     ${feeBox}
     ${etfNote}
     <div class="meta">⚠️ Nordnet gebyr: 0.15% (min 25 DKK, maks 299 DKK)</div>
@@ -1198,7 +1447,7 @@ function autoGenerateHoldingsAlarms() {
 // Generer alarmer for en specifik aktie (i AI Assistant)
 function generateAlarmsForStock(ticker, price, rsi) {
   const stopLoss = parseFloat(document.getElementById('stopLoss').value) / 100;
-  const rr = parseInt(document.getElementById('rr').value);
+  const rr = parseFloat(document.getElementById('rr').value) || 1;
   
   const sl = price * (1 + stopLoss);
   const tp = price * (1 + Math.abs(stopLoss) * rr / 100);
@@ -1546,9 +1795,58 @@ function generateGemaResponse(msg) {
   return `🤔 Forstået! Jeg behandler: "${msg}"\nPrøv: "Sæt min risiko til lav" eller "Tilføj en alarm på NVDA" eller "Vis min portefølje værdi"`;
 }
 
+// ==================== NYHEDER VISNING ====================
+async function loadStockNews(ticker) {
+  const newsEl = document.getElementById('newsList');
+  if (!newsEl) return;
+  newsEl.innerHTML = '<span style="color:#666">⏳ Henter nyheder...</span>';
+
+  const news = await fetchStockNews(ticker);
+
+  if (news.length === 0) {
+    newsEl.innerHTML = '<span style="color:#555">Ingen nyheder fundet for denne aktie.</span>';
+    return;
+  }
+
+  newsEl.innerHTML = news.map(item => {
+    const date = new Date(item.time * 1000);
+    const timeAgo = getTimeAgo(date);
+    const sourceIcon = item.source ? getSourceIcon(item.source) : '📰';
+    return `<div style="margin-bottom:10px;padding:8px 10px;background:#1e1e1e;border-radius:6px;border-left:3px solid var(--cyan)">
+      <div style="font-size:0.88em;margin-bottom:3px">${item.title}</div>
+      <div style="font-size:0.72em;color:#666">${sourceIcon} ${item.source || 'Ukendt'} · ${timeAgo}</div>
+    </div>`;
+  }).join('');
+}
+
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 60) return `for ${diffMins} min siden`;
+  if (diffHours < 24) return `for ${diffHours} t${diffHours === 1 ? 'ime' : 'imer'} siden`;
+  return `for ${diffDays} d${diffDays === 1 ? 'ag' : 'age'} siden`;
+}
+
+function getSourceIcon(source) {
+  const s = source.toLowerCase();
+  if (s.includes('reuters')) return '🇬🇧 Reuters';
+  if (s.includes('bloomberg')) return '🇬🇧 Bloomberg';
+  if (s.includes('cnbc')) return '🇺🇸 CNBC';
+  if (s.includes('wsj') || s.includes('wall street')) return '🇺🇸 WSJ';
+  if (s.includes('marketwatch')) return '🇺🇸 MarketWatch';
+  if (s.includes('seeking')) return '🇺🇸 Seeking Alpha';
+  if (s.includes('finans') || s.includes('borsen')) return '🇩🇰 Finans';
+  if (s.includes('politiken') || s.includes('information')) return '🇩🇰';
+  return '📰';
+}
+
 // ==================== INIT ====================
 calcTotal();
 updateTimestamp();
+startAutoUpdater();
 
 // Opdater timestamp hvert minut
 setInterval(updateTimestamp, 60000);
