@@ -1459,8 +1459,8 @@ function addHoldingFromDropdown() {
 }
 
 // ==================== AI ASSISTANT ====================
-async function loadStock() {
-  const sel = document.getElementById('stockSelect').value;
+async function loadStock(symbol) {
+  const sel = symbol || document.getElementById('stockSelect')?.value;
   if (!sel || !stocks[sel]) return;
   
   const s = stocks[sel];
@@ -1483,6 +1483,39 @@ async function loadStock() {
   
   renderIndicators(sel);
   calcRec();
+}
+
+// AI Assistant autocomplete
+function filterStocksAI(query) {
+  const dropdown = document.getElementById('stockDropdownAI');
+  if (!query) { dropdown.classList.remove('show'); return; }
+  const q = query.toLowerCase();
+  const matches = allStocks.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+  let html = '';
+  matches.slice(0, 20).forEach(stock => {
+    html += `<div class="stock-item" data-symbol="${stock.symbol}" onclick="loadStockAI('${stock.symbol}')">
+      <span class="symbol">${stock.symbol}</span>
+      <span class="name">${stock.name}</span>
+    </div>`;
+  });
+  dropdown.innerHTML = html || '<div style="padding:10px;color:#666;">Ingen resultater</div>';
+  dropdown.classList.add('show');
+}
+
+function loadStockAI(symbol) {
+  document.getElementById('stockDropdownAI').classList.remove('show');
+  document.getElementById('stockSearchAI').value = symbol;
+  loadStock(symbol);
+}
+
+function handleKeyDownAI(e) {
+  const dropdown = document.getElementById('stockDropdownAI');
+  const items = dropdown.querySelectorAll('.stock-item');
+  if (!items.length) return;
+  if (e.key === 'Enter' && items.length > 0) {
+    e.preventDefault();
+    loadStockAI(items[0].dataset.symbol);
+  }
 }
 
 function resetDailyDataUI() {
