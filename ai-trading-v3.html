@@ -224,6 +224,114 @@ tr.stock-row:hover { cursor: pointer; }
   font-size: 0.7em;
   margin-left: 6px;
 }
+
+/* ==================== TOOLTIPS ==================== */
+.tooltip {
+  position: fixed;
+  display: inline-block;
+  cursor: help;
+  border-bottom: 1px dashed #888;
+  z-index: 99;
+}
+.tooltip .tooltip-text {
+  display: none;
+  width: 280px;
+  max-width: calc(100vw - 20px);
+  background: #1e1e2e;
+  border: 1px solid var(--cyan);
+  color: #e0e0e0;
+  text-align: left;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.78em;
+  line-height: 1.4;
+  position: fixed;
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  word-wrap: break-word;
+  white-space: normal;
+}
+.tooltip .tooltip-text a {
+  color: var(--cyan);
+}
+.tooltip.show-tooltip .tooltip-text {
+  display: block;
+  opacity: 1;
+}
+
+/* ==================== CHAT SEKTION ==================== */
+.chat-section {
+  background: #1e1e2e;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 15px;
+}
+.chat-section h3 {
+  color: var(--cyan);
+  font-size: 0.9em;
+  margin-bottom: 10px;
+}
+.chat-messages {
+  max-height: 250px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: #111;
+  border-radius: 4px;
+  border: 1px solid #333;
+}
+.chat-msg {
+  padding: 6px 0;
+  font-size: 0.85em;
+  border-bottom: 1px solid #222;
+}
+.chat-msg:last-child { border-bottom: none; }
+.chat-msg .user { color: var(--cyan); font-weight: bold; }
+.chat-msg .gema { color: var(--green); }
+.chat-msg .time { color: #555; font-size: 0.7em; float: right; }
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+.chat-input-row input {
+  flex: 1;
+  background: #111;
+  border: 1px solid #333;
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+.chat-input-row input:focus { border-color: var(--cyan); outline: none; }
+.chat-send-btn {
+  background: var(--cyan);
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.quick-action-btn {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: #aaa;
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.75em;
+  transition: all 0.2s;
+}
+.quick-action-btn:hover { border-color: var(--cyan); color: var(--cyan); }
 </style>
 </head>
 <body>
@@ -247,6 +355,7 @@ tr.stock-row:hover { cursor: pointer; }
   <div class="tab active" onclick="switchTab('portfolio')">📊 Portfolio</div>
   <div class="tab" onclick="switchTab('assistant')">🧠 AI Assistant</div>
   <div class="tab" onclick="switchTab('alarms')">🔔 Alarms</div>
+  <div class="tab" onclick="switchTab('chat')">💬 Chat</div>
 </div>
 
 <!-- PORTFOLIO TAB -->
@@ -270,15 +379,15 @@ tr.stock-row:hover { cursor: pointer; }
   <div class="section-title">⚙️ Risiko Parametre</div>
   <div class="row">
     <div class="card" style="flex:0 0 calc(25% - 12px)">
-      <label>Max tab per trade</label>
+      <label class="tooltip">Max tab per trade<span class="tooltip-text">Alarm udløses hvis tab på én handel overstiger dette beløb. Beskytter din portefølje mod store tab.</span></label>
       <input type="number" id="maxLoss" value="2" step="0.1" oninput="calcTotal()"> %
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
-      <label>Stop-loss</label>
+      <label class="tooltip">Stop-loss<span class="tooltip-text">Automatisk salg hvis kursen falder X% fra købspris. Stop-loss止损.</span></label>
       <input type="number" id="stopLoss" value="-5" step="0.1" oninput="calcTotal()"> %
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
-      <label>Kelly %</label>
+      <label class="tooltip">Kelly %<span class="tooltip-text">Kelly Criterion = vindende probability × gevinst/gennemsnit - tab/gennemsnit.<br>Bruges til position sizing. Anbefales max 10-15% for sikker trading.</span></label>
       <input type="number" id="kelly" value="10" step="0.5" oninput="calcTotal()"> %
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
@@ -358,7 +467,7 @@ tr.stock-row:hover { cursor: pointer; }
   <div class="section-title">📈 Tekniske Indikatorer</div>
   <div class="indicators" id="indicatorsBox">
     <div class="ind">
-      <div class="lbl">RSI (14)</div>
+      <div class="lbl tooltip">RSI (14)<span class="tooltip-text">RSI (Relative Strength Index) måler hastigheden af kursændringer.<br><br>🟢 Under 30 = <b>oversolgt</b> → mulig optur på vej<br>🔴 Over 70 = <b>overkøbt</b> → mulig korrektion på vej<br><br><a href="https://www.investopedia.com/terms/r/rsi.asp" target="_blank">Læs mere på Investopedia ↗</a></span></div>
       <div class="vl" id="rsi">--</div>
     </div>
     <div class="ind">
@@ -386,18 +495,18 @@ tr.stock-row:hover { cursor: pointer; }
 
 <!-- ALARMS TAB -->
 <div id="panel-alarms" class="panel">
-  <div class="section-title">🔔 Aktive Alarmer</div>
+  <div class="section-title tooltip">🔔 Aktive Alarmer<span class="tooltip-text">Alarmer aktiveres når betingelsen er opfyldt.<br><br>Klik på en alarm for at åbne AI-assistenten med den aktie.</span></div>
   <div id="alarmsList"></div>
   <button class="trade-btn yellow" onclick="addAlarm()" style="margin-top:15px">+ Opret Alarm</button>
   
   <div class="section-title" style="margin-top:25px">⚙️ Alarm Parametre</div>
   <div class="row">
     <div class="card" style="flex:0 0 calc(25% - 12px)">
-      <label>RSI Overkøbt (>70)</label>
+      <label class="tooltip">RSI Overkøbt (>70)<span class="tooltip-text">RSI måler hastigheden af kursændringer. Over 70 = overkøbt, mulig korrektion på vej.<br><a href="https://www.investopedia.com/terms/r/rsi.asp" target="_blank">Læs mere på Investopedia ↗</a></span></label>
       <input type="number" id="rsiOverbought" value="70" oninput="updateAlarmParams()">
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
-      <label>RSI Oversolgt (<30)</label>
+      <label class="tooltip">RSI Oversolgt (<30)<span class="tooltip-text">RSI under 30 = oversolgt, mulig optur på vej. Overvej at købe.</span></label>
       <input type="number" id="rsiOversold" value="30" oninput="updateAlarmParams()">
     </div>
     <div class="card" style="flex:0 0 calc(25% - 12px)">
@@ -410,6 +519,32 @@ tr.stock-row:hover { cursor: pointer; }
         <option value="true" selected>Ja</option>
         <option value="false">Nej</option>
       </select>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT TAB -->
+<div id="panel-chat" class="panel">
+  <div class="chat-section">
+    <h3>💬 Chat med GEMA</h3>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-msg">
+        <span class="gema">GEMA:</span> Hej! Jeg er din AI trading assistant. Stil mig et spørgsmål eller brug en af genvejene herunder 👋
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="Skriv din besked til GEMA..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+      <button class="chat-send-btn" onclick="sendChatMessage()">Send</button>
+    </div>
+    <div class="quick-actions">
+      <button class="quick-action-btn" onclick="quickChat('Sæt min risiko til lav')">🛡️ Lav risiko</button>
+      <button class="quick-action-btn" onclick="quickChat('Sæt min risiko til medium')">⚖️ Medium risiko</button>
+      <button class="quick-action-btn" onclick="quickChat('Sæt min risiko til høj')">🔥 Høj risiko</button>
+      <button class="quick-action-btn" onclick="quickChat('Jeg vil kun have danske aktier')">🇩🇰 Kun danske</button>
+      <button class="quick-action-btn" onclick="quickChat('Jeg foretrækker ETF\'er over enkeltaktier')">📊 ETF foretrukket</button>
+      <button class="quick-action-btn" onclick="quickChat('Tilføj en alarm på NVDA for RSI > 75')">🔔 Alarm: NVDA RSI>75</button>
+      <button class="quick-action-btn" onclick="quickChat('Vis mig mine beste positioner')">📈 Bedste positioner</button>
+      <button class="quick-action-btn" onclick="quickChat('Hvad er min samlede portefølje værdi?')">💰 Portefølje værdi</button>
     </div>
   </div>
 </div>
@@ -495,14 +630,14 @@ let alarmParams = {
 };
 
 // ==================== GEBYRBEREGNING (Nordnet Standard) ====================
-// Nordnet Standard: 0.15% af handelsværdi, min 99 DKK, maks 299 DKK
+// Nordnet Standard: 0.15% af handelsværdi, min 25 DKK, maks 299 DKK
 // Køb udenfor Nordnet: yderligere 0.11%
 function calcFee(tradeValue, outsideNordnet = false) {
   // Nordnet basis gebyr
   let fee = tradeValue * 0.0015; // 0.15%
   
   // Min/max
-  fee = Math.max(99, Math.min(299, fee));
+  fee = Math.max(25, Math.min(299, fee));
   
   // Ekstra gebyr hvis købt udenfor Nordnet (f.eks. WBK, Danske Bank)
   if (outsideNordnet) {
@@ -801,12 +936,17 @@ function calcRec() {
     recCls = 'sell';
   }
   
-  // Fee breakdown HTML
+  // Fee breakdown HTML – viser gebyrformlen tydeligt
+  // Formel: Gebyr = max(25 DKK, 0.15% × tradeValue), extra 0.11% hvis outsideNordnet
   let feeBox = `<div class="fee-box">
-    <div class="fee-row"><span>Gebyr ${currency}→DKK</span><span>${cost1.fee.toLocaleString('da-DK')} DKK</span></div>
-    <div class="fee-row"><span>1 aktie total</span><span>${cost1.total.toLocaleString('da-DK')} DKK</span></div>
-    <div class="fee-row"><span>2 aktier total</span><span>${cost2.total.toLocaleString('da-DK')} DKK</span></div>
-    <div class="fee-row total"><span>Total (${maxQty} stk)</span><span>${(cost2.total * maxQty / 2).toLocaleString('da-DK')} DKK</span></div>
+    <div style="font-size:0.75em;color:#888;margin-bottom:6px">💡 Formel: <b>Gebyr = max(25 DKK, 0.15% × kurs × antal)</b></div>
+    <div class="fee-row"><span>1 aktie: ${pricePerShare.toFixed(2)} ${currency} × ${fxRate.toFixed(2)} = ${cost1.priceInDKK.toFixed(2)} DKK</span><span></span></div>
+    <div class="fee-row"><span>&nbsp;&nbsp;0.15% × ${cost1.priceInDKK.toFixed(2)} = ${(cost1.priceInDKK * 0.0015).toFixed(2)} DKK</span><span></span></div>
+    <div class="fee-row"><span>&nbsp;&nbsp;Gebyr (min 25 DKK):</span><span>${cost1.fee.toLocaleString('da-DK')} DKK</span></div>
+    <div class="fee-row total"><span>= Total for 1 aktie:</span><span>${cost1.total.toLocaleString('da-DK')} DKK</span></div>
+    <div class="fee-row"><span>2 aktier total:</span><span>${cost2.total.toLocaleString('da-DK')} DKK</span></div>
+    <div class="fee-row total"><span>Total (${maxQty} stk):</span><span>${(cost1.total * maxQty).toLocaleString('da-DK')} DKK</span></div>
+    <div style="font-size:0.72em;color:#666;margin-top:6px">Nordnet: 0.15%, min 25 DKK, maks 299 DKK. Outside Nordnet +0.11% extra.</div>
   </div>`;
   
   // ETF note hvis beholdning er for lille
@@ -824,18 +964,18 @@ function calcRec() {
     <div class="rec ${recCls}">📊 ANBEFALING: ${recText}</div>
     ${feeBox}
     ${etfNote}
-    <div class="meta">⚠️ Nordnet gebyr: 0.15% (min 99 DKK, maks 299 DKK)</div>
+    <div class="meta">⚠️ Nordnet gebyr: 0.15% (min 25 DKK, maks 299 DKK)</div>
     
     <div class="section-title" style="margin-top:12px">⚙️ RISIKO-BREAKDOWN</div>
-    <div class="risk-row"><span>Max position (${(kelly*100).toFixed(0)}%)</span><span>${posSize.maxPos.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span class="tooltip">Max position (${(kelly*100).toFixed(0)}%)<span class="tooltip-text">Maksimal procentdel af din beholdning i én aktie baseret på Kelly %</span></span><span>${posSize.maxPos.toLocaleString('da-DK')} DKK</span></div>
     <div class="risk-row"><span>Stop-loss (${(stopLoss*100).toFixed(1)}%)</span><span>Tab max ${riskAmount.toLocaleString('da-DK')} DKK</span></div>
     <div class="risk-row"><span>Risk/Reward (1:${rr})</span><span>Potentiel gevinst ${rewardAmount.toLocaleString('da-DK')} DKK</span></div>
-    <div class="risk-row"><span>Kelly optimal (${posSize.kellyOpt.toFixed(1)}%)</span><span>${posSize.kellyPos.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span class="tooltip">Kelly optimal (${posSize.kellyOpt.toFixed(1)}%)<span class="tooltip-text">Kelly Criterion = vindende probability × gevinst/gennemsnit - tab/gennemsnit.<br>Bruges til position sizing.</span></span><span>${posSize.kellyPos.toLocaleString('da-DK')} DKK</span></div>
     <div class="risk-row"><span>Min. viable position</span><span>${posSize.minViable.toLocaleString('da-DK')} DKK</span></div>
     
     <div class="section-title" style="margin-top:12px">🎯 STRATEGI</div>
     <div class="risk-row"><span>Entry</span><span>~${priceInput.toFixed(2)} DKK</span></div>
-    <div class="risk-row"><span>Stop-loss</span><span>${sl.toFixed(2)} DKK (${(stopLoss*100).toFixed(1)}%)</span></div>
+    <div class="risk-row"><span class="tooltip">Stop-loss<span class="tooltip-text">Automatisk salg hvis kursen falder X% fra købspris. Stop-loss止损.</span></span><span>${sl.toFixed(2)} DKK (${(stopLoss*100).toFixed(1)}%)</span></div>
     <div class="risk-row"><span>Take-profit</span><span>${tp.toFixed(2)} DKK (+${((tp/priceInput-1)*100).toFixed(1)}%)</span></div>
     
     <div class="section-title" style="margin-top:12px">⚠️ ALARM-TRIGGERS</div>
@@ -881,22 +1021,24 @@ function autoGenerateHoldingsAlarms() {
     const exists = alarms.find(a => a.ticker === h.ticker && a.type === 'info');
     
     if (!exists) {
-      // RSI alarm
+      // RSI alarm - SPECIFIKKE beskeder med tidsperspektiv
       if (s.rsi < rsiOversold) {
         alarms.push({
           ticker: h.ticker,
           type: 'info',
           pct: 0,
-          period: `RSI ${s.rsi}`,
-          msg: `Oversolgt (RSI: ${s.rsi}) - potentiel opgang`
+          period: `RSI ${s.rsi} (idag)`,
+          msg: `RSI ${s.rsi}/30 - OVERSOLGT zone. Potentiel optur sandsynlig inden for 1-5 dage. Overvej at købe på dip.`,
+          updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
         });
       } else if (s.rsi > rsiOverbought) {
         alarms.push({
           ticker: h.ticker,
           type: 'warn',
           pct: 0,
-          period: `RSI ${s.rsi}`,
-          msg: `Overkøbt (RSI: ${s.rsi}) - overvej at tage gevinst`
+          period: `RSI ${s.rsi} (idag)`,
+          msg: `RSI: ${s.rsi}/${rsiOverbought} - tæt på overkøbt zone. Korrektion sandsynlig inden for 1-5 dage. Overvej gevinstsikring.`,
+          updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
         });
       }
       
@@ -906,8 +1048,9 @@ function autoGenerateHoldingsAlarms() {
           ticker: h.ticker,
           type: s.change > 0 ? 'info' : 'danger',
           pct: s.change,
-          period: 'dag',
-          msg: `Kurs ${s.change > 0 ? 'steg' : 'faldt'} ${s.change.toFixed(1)}% i dag`
+          period: 'denne uge',
+          msg: `Kurs ${s.change > 0 ? 'steg' : 'faldt'} ${s.change.toFixed(1)}% ${s.change > 0 ? 'denne uge' : 'denne måned'}`,
+          updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
         });
       }
     }
@@ -930,8 +1073,9 @@ function generateAlarmsForStock(ticker, price, rsi) {
         ticker,
         type: 'info',
         pct: 0,
-        period: 'køb-anbefaling',
-        msg: `BUY signal - RSI ${rsi} (oversolgt zone)`
+        period: 'køb-anbefaling (idag)',
+        msg: `BUY signal - RSI ${rsi}/30 - OVERSOLGT. Potentiel optur sandsynlig inden for 1-5 dage.`,
+        updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
       });
     }
   }
@@ -944,8 +1088,9 @@ function generateAlarmsForStock(ticker, price, rsi) {
         ticker,
         type: 'warn',
         pct: 0,
-        period: 'salg-anbefaling',
-        msg: `SELL signal - RSI ${rsi} (overkøbt zone)`
+        period: 'salg-anbefaling (idag)',
+        msg: `SELL signal - RSI ${rsi}/70 - OVERKØBT. Korrektion sandsynlig inden for 1-5 dage. Overvej gevinstsikring.`,
+        updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
       });
     }
   }
@@ -963,11 +1108,12 @@ function renderAlarms() {
   alarms.forEach((a, i) => {
     const typeMap = { warn:'alarm-item', danger:'alarm-item critical', info:'alarm-item info' };
     const iconMap = { warn:'⚠️', danger:'🚨', info:'📰' };
-    list.innerHTML += `<div class="${typeMap[a.type]||'alarm-item'}">
+    // Klick på alarm → åben AI assistant med den aktie
+    list.innerHTML += `<div class="${typeMap[a.type]||'alarm-item'}" onclick="analyzeStock('${a.ticker}')" style="cursor:pointer">
       <div class="title">${iconMap[a.type]||'🔔'} ${a.ticker} ${a.pct ? (a.pct > 0 ? '+'+a.pct : a.pct)+'%' : ''} ${a.period ? '('+a.period+')' : ''}</div>
       <div class="desc">${a.msg}</div>
-      <div class="time">${new Date().toLocaleDateString('da-DK')} ${new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})}</div>
-      <button onclick="alarms.splice(${i},1);renderAlarms()" style="margin-top:6px;background:none;border:1px solid #444;color:#666;padding:2px 8px;border-radius:3px;font-size:0.75em;cursor:pointer">Fjern</button>
+      <div class="time">Sidst opdateret: ${a.updated || new Date().toLocaleDateString('da-DK')+' '+new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})}</div>
+      <button onclick="event.stopPropagation();alarms.splice(${i},1);renderAlarms()" style="margin-top:6px;background:none;border:1px solid #444;color:#666;padding:2px 8px;border-radius:3px;font-size:0.75em;cursor:pointer">Fjern</button>
     </div>`;
   });
 }
@@ -1034,6 +1180,232 @@ function updateTimestamp() {
   const now = new Date();
   const formatted = now.toLocaleDateString('da-DK') + ' ' + now.toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'});
   document.getElementById('lastUpdate').textContent = 'Opdateret: ' + formatted;
+}
+
+// ==================== TOOLTIP SYSTEM ====================
+let activeTooltip = null;
+
+document.addEventListener('mouseover', function(e) {
+  const tooltipEl = e.target.closest('.tooltip');
+  if (!tooltipEl) return;
+  
+  const tip = tooltipEl.querySelector('.tooltip-text');
+  if (!tip) return;
+  
+  // Show tooltip
+  tooltipEl.classList.add('show-tooltip');
+  
+  // Position based on mouse
+  positionTooltip(tooltipEl, tip, e.clientX, e.clientY);
+  activeTooltip = tooltipEl;
+});
+
+document.addEventListener('mouseout', function(e) {
+  const tooltipEl = e.target.closest('.tooltip');
+  if (tooltipEl) {
+    tooltipEl.classList.remove('show-tooltip');
+    activeTooltip = null;
+  }
+});
+
+document.addEventListener('click', function(e) {
+  if (activeTooltip && !e.target.closest('.tooltip')) {
+    activeTooltip.classList.remove('show-tooltip');
+    activeTooltip = null;
+  }
+});
+
+function positionTooltip(tooltipEl, tip, mouseX, mouseY) {
+  const tipW = 280;
+  const tipH = tip.offsetHeight || 120;
+  const margin = 14;
+  
+  let left = mouseX + margin;
+  let top = mouseY + margin;
+  
+  // Right edge check
+  if (left + tipW > window.innerWidth - margin) {
+    left = mouseX - tipW - margin;
+  }
+  
+  // Bottom edge check
+  if (top + tipH > window.innerHeight - margin) {
+    top = mouseY - tipH - margin;
+  }
+  
+  // Left edge check
+  if (left < margin) {
+    left = margin;
+  }
+  
+  // Top edge check
+  if (top < margin) {
+    top = margin;
+  }
+  
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+
+document.addEventListener('mousemove', function(e) {
+  if (!activeTooltip) return;
+  const tip = activeTooltip.querySelector('.tooltip-text');
+  if (!tip) return;
+  positionTooltip(activeTooltip, tip, e.clientX, e.clientY);
+});
+
+// ==================== TOOLTIP HELPER ====================
+// Returnerer tooltip HTML for et givent label
+function tooltip(label, text) {
+  return `<span class="tooltip">${label}<span class="tooltip-text">${text}</span></span>`;
+}
+
+// ==================== CHAT MED GEMA ====================
+// Chat præferencer (gemmes i localStorage)
+let chatPrefs = {
+  riskLevel: 'medium',     // low, medium, high
+  onlyDanish: false,
+  preferEtf: false
+};
+
+function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addChatMessage(msg, 'user');
+  // Simuler GEMA svar
+  setTimeout(() => {
+    const response = generateGemaResponse(msg);
+    addChatMessage(response, 'gema');
+  }, 500);
+}
+
+function quickChat(msg) {
+  document.getElementById('chatInput').value = msg;
+  sendChatMessage();
+}
+
+function addChatMessage(text, sender) {
+  const box = document.getElementById('chatMessages');
+  const time = new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'});
+  const html = `<div class="chat-msg">
+    <span class="${sender}">${sender === 'user' ? 'Du:' : 'GEMA:'}</span>
+    <span class="time">${time}</span>
+    <div style="margin-top:3px">${text}</div>
+  </div>`;
+  box.innerHTML += html;
+  box.scrollTop = box.scrollHeight;
+}
+
+function generateGemaResponse(msg) {
+  const m = msg.toLowerCase();
+
+  // Risiko niveau
+  if (m.includes('risiko') || m.includes('risk')) {
+    if (m.includes('lav') || m.includes('low')) {
+      chatPrefs.riskLevel = 'low';
+      document.getElementById('kelly').value = 5;
+      document.getElementById('maxLoss').value = 1;
+      document.getElementById('stopLoss').value = -3;
+      calcTotal();
+      return `✅ Risiko sat til LAV. Kelly: 5%, Max tab: 1%, Stop-loss: -3%. Din portefølje er nu mere beskyttet mod udsving.`;
+    }
+    if (m.includes('høj') || m.includes('high') || m.includes('høj')) {
+      chatPrefs.riskLevel = 'high';
+      document.getElementById('kelly').value = 15;
+      document.getElementById('maxLoss').value = 3;
+      document.getElementById('stopLoss').value = -8;
+      calcTotal();
+      return `🔥 Risiko sat til HØJ. Kelly: 15%, Max tab: 3%, Stop-loss: -8%. Du accepterer mere risiko for potentielt større afkast.`;
+    }
+    chatPrefs.riskLevel = 'medium';
+    document.getElementById('kelly').value = 10;
+    document.getElementById('maxLoss').value = 2;
+    document.getElementById('stopLoss').value = -5;
+    calcTotal();
+    return `⚖️ Risiko sat til MEDIUM. Kelly: 10%, Max tab: 2%, Stop-loss: -5%. Standard indstillinger forbalanceret risiko.`;
+  }
+
+  // Kun danske aktier
+  if (m.includes('dansk') || m.includes('danish')) {
+    chatPrefs.onlyDanish = true;
+    return `🇩🇰 Kun danske aktier aktiveret. Jeg vil nu kun anbefale: NOVO, VWS, DSV, MAERSK, COLO. Amerikanske aktier vises stadig, men ikke anbefalet.`;
+  }
+
+  // ETF foretrukket
+  if (m.includes('etf') || m.includes('børne') || m.includes('index')) {
+    chatPrefs.preferEtf = true;
+    return `📊 ETF-tilstand aktiveret! Jeg vil prioritere SPY, XOP og andre ETF'er over enkeltaktier, især for mindre beholdninger (<10.000 DKK).`;
+  }
+
+  // Alarm tilføjelse
+  const rsiMatch = msg.match(/rsi\s*>\s*(\d+)/i);
+  if (m.includes('alarm') && rsiMatch) {
+    const tickerMatch = msg.match(/(nvda|tsla|aapl|msft|amzn|novo|vws|dsv|maersk|colo|xop|spy)/i);
+    if (tickerMatch) {
+      const ticker = tickerMatch[1].toUpperCase();
+      const rsiVal = parseInt(rsiMatch[1]);
+      alarms.push({
+        ticker: ticker,
+        type: 'warn',
+        pct: 0,
+        period: `RSI > ${rsiVal}`,
+        msg: `Alarm: ${ticker} RSI over ${rsiVal} - overkøbt territory`
+      });
+      renderAlarms();
+      return `🔔 Alarm tilføjet! ${ticker} vil give alarm når RSI > ${rsiVal}. Du kan se den under Alarms-fanen.`;
+    }
+  }
+  if (m.includes('alarm')) {
+    const tickerMatch = msg.match(/(nvda|tsla|aapl|msft|amzn|novo|vws|dsv|maersk|colo|xop|spy)/i);
+    if (tickerMatch) {
+      const ticker = tickerMatch[1].toUpperCase();
+      alarms.push({
+        ticker: ticker,
+        type: 'info',
+        pct: 0,
+        period: 'manuel',
+        msg: `Alarm tilføjet for ${ticker} via chat`
+      });
+      renderAlarms();
+      return `🔔 Alarm tilføjet for ${ticker}! Find den under Alarms-fanen.`;
+    }
+    return `🔔 Hvilken aktie skal have alarm? Prøv: "Tilføj en alarm på NVDA for RSI > 75"`;
+  }
+
+  // Portefølje værdi
+  if (m.includes('værdi') || m.includes('værd') || m.includes('portefølje') || m.includes('portfolio')) {
+    const cash = parseFloat(document.getElementById('cash').value) || 0;
+    let holdingsVal = 0;
+    holdings.forEach(h => {
+      const s = stocks[h.ticker];
+      if (s) holdingsVal += h.qty * s.price * (fxRates[s.currency] || 1);
+    });
+    const total = cash + holdingsVal;
+    return `💰 Din samlede portefølje: **${total.toLocaleString('da-DK')} DKK** (Kontant: ${cash.toLocaleString('da-DK')} DKK + Beholdninger: ${holdingsVal.toLocaleString('da-DK')} DKK)`;
+  }
+
+  // Bedste positioner
+  if (m.includes('bedst') || m.includes('bedste') || m.includes('bedst')) {
+    let sorted = holdings.map(h => {
+      const s = stocks[h.ticker];
+      const pnl = s ? ((s.price - h.buyPrice) / h.buyPrice * 100).toFixed(1) : 0;
+      return { ticker: h.ticker, pnl: parseFloat(pnl), qty: h.qty };
+    }).sort((a, b) => b.pnl - a.pnl);
+
+    if (sorted.length === 0) return '📭 Du har ingen beholdninger endnu.';
+    const lines = sorted.map((h, i) => `${i+1}. ${h.ticker}: ${h.pnl >= 0 ? '+' : ''}${h.pnl}% (${h.qty} stk)`).join('\n');
+    return `📈 Dine bedste positioner:\n${lines}`;
+  }
+
+  // Hjælp
+  if (m.includes('hjælp') || m.includes('help') || m.includes('hvad kan')) {
+    return `Jeg kan hjælpe dig med:\n• "Sæt min risiko til lav/medium/høj"\n• "Jeg vil kun have danske aktier"\n• "Jeg foretrækker ETF'er over enkeltaktier"\n• "Tilføj en alarm på NVDA for RSI > 75"\n• "Hvad er min portefølje værdi?"\n• "Vis mine bedste positioner"`;
+  }
+
+  // Default
+  return `🤔 Forstået! Jeg behandler: "${msg}"\nPrøv: "Sæt min risiko til lav" eller "Tilføj en alarm på NVDA" eller "Vis min portefølje værdi"`;
 }
 
 // ==================== INIT ====================
