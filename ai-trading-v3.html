@@ -1965,14 +1965,14 @@ function renderAlarms() {
     const typeMap = { warn:'alarm-item', danger:'alarm-item critical', info:'alarm-item info' };
     const iconMap = { warn:'⚠️', danger:'🚨', info:'📰' };
     // Klick på alarm → åben AI assistant med den aktie
-    list.innerHTML += `<div class="${typeMap[a.type]||'alarm-item'}" onclick="analyzeStock('${a.ticker}')" style="cursor:pointer">
+    list.innerHTML += `<div class="${typeMap[a.type]||'alarm-item'}" onclick="switchTab('assistant');loadStock('${a.ticker}')" style="cursor:pointer">
       <div class="title">${iconMap[a.type]||'🔔'} ${a.ticker} ${a.pct ? (a.pct > 0 ? '+'+a.pct : a.pct)+'%' : ''} ${a.period ? '('+a.period+')' : ''}</div>
       <div class="desc">${a.msg}</div>
       <div class="time">Sidst opdateret: ${a.updated || new Date().toLocaleDateString('da-DK')+' '+new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})}</div>
       <button onclick="event.stopPropagation();alarms.splice(${i},1);renderAlarms()" style="margin-top:6px;background:none;border:1px solid #444;color:#666;padding:2px 8px;border-radius:3px;font-size:0.75em;cursor:pointer">Fjern</button>
     </div>`;
   });
-}
+// Vis guide popup for trading-koncepter
 
 function addAlarm() {
   const ticker = prompt('Ticker:').toUpperCase().trim();
