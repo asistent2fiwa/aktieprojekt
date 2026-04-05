@@ -714,7 +714,74 @@ let alarmParams = {
   autoAlarmHoldings: true
 };
 
-// ==================== YAHOO FINANCE API (FULL) ====================
+// ==================== YAHOO FINANCE BATCH API ====================
+const priceCache = {
+  data: {},
+  timestamp: null
+};
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutter
+
+async function fetchAllPrices(symbols) {
+  // Tjek cache først
+  if (priceCache.timestamp &&
+      (Date.now() - priceCache.timestamp) < CACHE_DURATION &&
+      symbols.every(s => priceCache.data[s])) {
+    return priceCache.data;
+  }
+
+  // Brug Yahoo Finance batch API
+  const symbolsParam = symbols.join(',');
+  const proxyUrl = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbolsParam}?interval=1d&range=1d`;
+
+  try {
+    const response = await fetch(proxyUrl);
+    const data = await response.json();
+
+    // Parse alle symboler
+    const results = {};
+    if (data.chart && data.chart.result) {
+      for (const result of data.chart.result) {
+        const symbol = result.meta.symbol;
+        const meta = result.meta;
+        // Hent OHLCV candle data fra sidste handelsdag
+        let open = null, high = null, low = null, volume = null;
+        if (result.timestamp && result.timestamp.length > 0) {
+          const lastIdx = result.timestamp.length - 1;
+          const quote = result.indicators && result.indicators.quote && result.indicators.quote[0];
+          if (quote) {
+            open = quote.open && quote.open[lastIdx];
+            high = quote.high && quote.high[lastIdx];
+            low = quote.low && quote.low[lastIdx];
+            volume = quote.volume && quote.volume[lastIdx];
+          }
+        }
+        results[symbol] = {
+          price: meta.regularMarketPrice,
+          prevClose: meta.previousClose,
+          currency: meta.currency || 'USD',
+          marketState: meta.marketState || 'CLOSED',
+          timestamp: meta.regularMarketTime,
+          open: open,
+          high: high,
+          low: low,
+          volume: volume,
+          success: true
+        };
+      }
+    }
+
+    // Gem i cache
+    priceCache.data = results;
+    priceCache.timestamp = Date.now();
+
+    return results;
+  } catch (error) {
+    console.error('Batch fetch error:', error);
+    return null;
+  }
+}
+
+// ==================== YAHOO FINANCE API (SINGLE - fallback) ====================
 async function fetchYahooPrice(symbol) {
   try {
     const proxyUrl = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
@@ -849,29 +916,33 @@ function stopAutoUpdater() {
 
 async function autoRefreshCurrentStock() {
   const ticker = document.getElementById('stockSelect').value;
-  if (!ticker) return;
-  await fetchAndUpdatePrice(ticker);
-  await loadStockNews(ticker);
-  // Opdater også beholdningernes priser
+  // Opdater beholdninger først (batch)
   await refreshAllHoldingsPrices();
+  if (ticker) {
+    await fetchAndUpdatePrice(ticker);
+    await loadStockNews(ticker);
+  }
   calcTotal();
   updateTimestamp();
 }
 
 async function refreshAllHoldingsPrices() {
   const tickers = [...new Set(holdings.map(h => h.ticker))];
-  await Promise.all(tickers.map(async ticker => {
-    const result = await fetchYahooPrice(ticker);
-    if (result.success && result.price) {
-      if (stocks[ticker]) {
-        stocks[ticker].price = result.price;
-        stocks[ticker].currency = result.currency;
-        if (result.prevClose) {
-          stocks[ticker].change = parseFloat(((result.price - result.prevClose) / result.prevClose * 100).toFixed(2));
+  const prices = await fetchAllPrices(tickers);
+
+  if (prices) {
+    tickers.forEach(ticker => {
+      if (prices[ticker] && prices[ticker].success) {
+        if (stocks[ticker]) {
+          stocks[ticker].price = prices[ticker].price;
+          stocks[ticker].currency = prices[ticker].currency;
+          if (prices[ticker].prevClose) {
+            stocks[ticker].change = parseFloat(((prices[ticker].price - prices[ticker].prevClose) / prices[ticker].prevClose * 100).toFixed(2));
+          }
         }
       }
-    }
-  }));
+    });
+  }
 }
 
 function manualRefreshAll() {
@@ -882,11 +953,13 @@ function manualRefreshAll() {
   }
   const ticker = document.getElementById('stockSelect').value;
   (async () => {
+    // Opdater beholdninger batch først
+    await refreshAllHoldingsPrices();
     if (ticker) {
       await fetchAndUpdatePrice(ticker);
       await loadStockNews(ticker);
     }
-    await refreshAllHoldingsPrices();
+    renderHoldings();
     calcTotal();
     updateTimestamp();
     if (btn) {
