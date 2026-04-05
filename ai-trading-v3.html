@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEMA AI Trading Assistant v3</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #1a1a1a;
+  --panel: #222;
+  --border: #333;
+  --text: #e0e0e0;
+  --cyan: #00e5ff;
+  --green: #00c853;
+  --red: #ff1744;
+  --yellow: #ffea00;
+  --orange: #ff9100;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  min-height: 100vh;
+  padding: 20px;
+}
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--border);
+}
+.header h1 {
+  font-size: 1.6em;
+  color: var(--cyan);
+  text-shadow: 0 0 20px #00e5ff55;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-left: auto;
+}
+.version-select {
+  background: #111;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+.version-select:focus { outline: none; border-color: var(--cyan); }
+.timestamp {
+  font-size: 0.75em;
+  color: #555;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 15px;
+}
+.tab {
+  padding: 10px 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  cursor: pointer;
+  font-size: 0.95em;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s;
+  color: #888;
+}
+.tab.active {
+  background: var(--panel);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  text-shadow: 0 0 10px #00e5ff55;
+}
+.tab:hover:not(.active) { color: var(--text); }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0 8px 8px 8px;
+  padding: 20px;
+  display: none;
+}
+.panel.active { display: block; }
+.row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+.card {
+  background: #1e1e1e;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 15px;
+  flex: 1;
+  min-width: 220px;
+}
+.card h3 { font-size: 0.85em; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.card .val { font-size: 1.4em; font-weight: bold; }
+.pos { color: var(--green); }
+.neg { color: var(--red); }
+label { display: block; font-size: 0.8em; color: #777; margin-bottom: 4px; }
+input[type=number] {
+  background: #111;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 4px;
+  width: 100%;
+  font-size: 0.95em;
+}
+input[type=number]:focus { outline: none; border-color: var(--cyan); }
+select {
+  background: #111;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 4px;
+  width: 100%;
+  font-size: 0.95em;
+}
+select:focus { outline: none; border-color: var(--cyan); }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th {
+  text-align: left;
+  padding: 8px 6px;
+  font-size: 0.75em;
+  color: #555;
+  text-transform: uppercase;
+  border-bottom: 1px solid #333;
+}
+td { padding: 10px 6px; border-bottom: 1px solid #2a2a2a; font-size: 0.9em; }
+tr:hover { background: #252525; }
+tr.stock-row:hover { cursor: pointer; }
+.trade-btn {
+  background: var(--cyan);
+  color: #000;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.85em;
+  transition: all 0.2s;
+}
+.trade-btn:hover { background: #33f0ff; box-shadow: 0 0 15px #00e5ff66; }
+.trade-btn.yellow { background: var(--yellow); }
+.trade-btn.orange { background: var(--orange); }
+.section-title {
+  font-size: 0.9em;
+  color: var(--cyan);
+  margin: 20px 0 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #333;
+}
+.analysis-box {
+  background: #1a1a2e;
+  border: 1px solid var(--cyan);
+  border-radius: 8px;
+  padding: 18px;
+  margin-top: 15px;
+  display: none;
+}
+.analysis-box.show { display: block; }
+.analysis-box h3 { color: var(--cyan); margin-bottom: 10px; }
+.analysis-box .rec {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: var(--green);
+  margin: 10px 0;
+}
+.analysis-box .rec.sell { color: var(--red); }
+.analysis-box .rec.hold { color: var(--yellow); }
+.meta { font-size: 0.8em; color: #666; margin: 4px 0; }
+.risk-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.88em; }
+.risk-row span:first-child { color: #888; }
+.alarm-item {
+  background: #1e1e1e;
+  border-left: 3px solid var(--yellow);
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 0 4px 4px 0;
+}
+.alarm-item.critical { border-color: var(--red); }
+.alarm-item.info { border-color: var(--cyan); }
+.alarm-item .title { font-weight: bold; margin-bottom: 4px; }
+.alarm-item .desc { font-size: 0.82em; color: #888; }
+.alarm-item .time { font-size: 0.75em; color: #555; margin-top: 4px; }
+.indicators {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.ind {
+  background: #181818;
+  padding: 8px 12px;
+  border-radius: 4px;
+  text-align: center;
+}
+.ind .lbl { font-size: 0.7em; color: #555; }
+.ind .vl { font-size: 1.1em; font-weight: bold; }
+.ind .vl.buy { color: var(--cyan); }
+.ind .vl.sell { color: var(--red); }
+.ind .vl.neutral { color: var(--yellow); }
+.fee-box {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 0.82em;
+}
+.fee-row { display: flex; justify-content: space-between; padding: 2px 0; }
+.fee-row.total { border-top: 1px solid #333; margin-top: 4px; padding-top: 4px; font-weight: bold; }
+.currency-note { font-size: 0.75em; color: #888; margin-top: 4px; }
+.etf-note { background: #2a2a1a; border: 1px solid var(--yellow); border-radius: 4px; padding: 10px; margin-top: 10px; font-size: 0.85em; color: var(--yellow); }
+.info-badge {
+  background: #2a2a2a;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.7em;
+  margin-left: 6px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🤖 GEMA</h1>
+  <span>AI Trading Assistant v3</span>
+  <div class="header-right">
+    <div class="timestamp" id="lastUpdate">Opdateret: --</div>
+    <div id="userInfo" style="display:none; font-size:0.8em; color:#888;"></div>
+    <button id="logoutBtn" onclick="logout()" style="background:#333; border:1px solid #555; color:#e0e0e0; padding:6px 14px; border-radius:20px; cursor:pointer; font-size:0.8em;">Logout</button>
+    <select class="version-select" id="versionSelect" onchange="loadVersion()">
+      <option value="v3" selected>v3 (nuværende)</option>
+      <option value="v2">v2</option>
+      <option value="v1">v1</option>
+    </select>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('portfolio')">📊 Portfolio</div>
+  <div class="tab" onclick="switchTab('assistant')">🧠 AI Assistant</div>
+  <div class="tab" onclick="switchTab('alarms')">🔔 Alarms</div>
+</div>
+
+<!-- PORTFOLIO TAB -->
+<div id="panel-portfolio" class="panel active">
+  <div class="row">
+    <div class="card">
+      <h3>💰 Kontant</h3>
+      <input type="number" id="cash" value="15000" oninput="calcTotal()">
+      <span style="font-size:0.8em;color:#666">DKK</span>
+    </div>
+    <div class="card">
+      <h3>📊 Total Portfolio</h3>
+      <div class="val" id="totalVal">15.000 DKK</div>
+    </div>
+    <div class="card">
+      <h3>📈 Daglig Gevinst/Tab</h3>
+      <div class="val pos" id="dayChange">+0 DKK</div>
+    </div>
+  </div>
+
+  <div class="section-title">⚙️ Risiko Parametre</div>
+  <div class="row">
+    <div class="card" style="flex:0 0 calc(25% - 12px)">
+      <label>Max tab per trade</label>
+      <input type="number" id="maxLoss" value="2" step="0.1" oninput="calcTotal()"> %
+    </div>
+    <div class="card" style="flex:0 0 calc(25% - 12px)">
+      <label>Stop-loss</label>
+      <input type="number" id="stopLoss" value="-5" step="0.1" oninput="calcTotal()"> %
+    </div>
+    <div class="card" style="flex:0 0 calc(25% - 12px)">
+      <label>Kelly %</label>
+      <input type="number" id="kelly" value="10" step="0.5" oninput="calcTotal()"> %
+    </div>
+    <div class="card" style="flex:0 0 calc(25% - 12px)">
+      <label>Risk/Reward</label>
+      <select id="rr" onchange="calcTotal()">
+        <option value="1">1:1</option>
+        <option value="2">1:2</option>
+        <option value="3" selected>1:3</option>
+        <option value="4">1:4</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-title">📋 Holdings</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Aktie</th>
+        <th>Stk</th>
+        <th>Købspris</th>
+        <th>Nu</th>
+        <th>+/-%</th>
+        <th>Værdi</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="holdingsBody"></tbody>
+  </table>
+  <button class="trade-btn" onclick="addHolding()" style="margin-top:12px">+ Tilføj Aktie</button>
+</div>
+
+<!-- AI ASSISTANT TAB -->
+<div id="panel-assistant" class="panel">
+  <div class="row">
+    <div class="card" style="flex:0 0 calc(40% - 10px)">
+      <label>Vælg Aktie</label>
+      <!-- dropdown med ticker+navne -->
+      <select id="stockSelect" onchange="loadStock()">
+        <option value="">-- Vælg --</option>
+        <option value="NVDA">NVDA - Nvidia</option>
+        <option value="TSLA">TSLA - Tesla</option>
+        <option value="AAPL">AAPL - Apple</option>
+        <option value="MSFT">MSFT - Microsoft</option>
+        <option value="AMZN">AMZN - Amazon</option>
+        <option value="NOVO">NOVO - Novo Nordisk</option>
+        <option value="VWS">VWS - Vestas</option>
+        <option value="DSV">DSV - DSV</option>
+        <option value="MAERSK">MAERSK - Maersk</option>
+        <option value="COLO">COLO - Coloplast</option>
+        <option value="XOP">XOP - OPEC ETF</option>
+        <option value="SPY">SPY - S&P 500</option>
+      </select>
+    </div>
+    <div class="card" style="flex:0 0 calc(30% - 10px)">
+      <label>Aktiekurs (DKK)</label>
+      <input type="number" id="stockPrice" placeholder="f.eks. 170" oninput="calcRec()">
+    </div>
+    <div class="card" style="flex:0 0 calc(30% - 10px)">
+      <label>Valutakurs (mod DKK)</label>
+      <select id="currencySelect" onchange="calcRec()">
+        <option value="USD" selected>USD/DKK</option>
+        <option value="EUR">EUR/DKK</option>
+        <option value="SEK">SEK/DKK</option>
+        <option value="NOK">NOK/DKK</option>
+        <option value="GBP">GBP/DKK</option>
+        <option value="DKK">DKK (ingen)</option>
+      </select>
+      <input type="number" id="fxRate" value="6.9" step="0.01" oninput="calcRec()" style="margin-top:6px" placeholder="Kurs">
+    </div>
+  </div>
+
+  <!-- Knap til at tilføje alarm direkte fra AI-assistent -->
+  <button class="trade-btn yellow" onclick="addAlarmFromAssistant()" style="margin-bottom:10px">🔔 + Tilføj Alarm</button>
+
+  <div id="analysisBox" class="analysis-box"></div>
+
+  <div class="section-title">📈 Tekniske Indikatorer</div>
+  <div class="indicators" id="indicatorsBox">
+    <div class="ind">
+      <div class="lbl">RSI (14)</div>
+      <div class="vl" id="rsi">--</div>
+    </div>
+    <div class="ind">
+      <div class="lbl">ATR (14)</div>
+      <div class="vl" id="atr">--</div>
+    </div>
+    <div class="ind">
+      <div class="lbl">SMA 20</div>
+      <div class="vl" id="sma20">--</div>
+    </div>
+    <div class="ind">
+      <div class="lbl">SMA 50</div>
+      <div class="vl" id="sma50">--</div>
+    </div>
+    <div class="ind">
+      <div class="lbl">SMA 200</div>
+      <div class="vl" id="sma200">--</div>
+    </div>
+    <div class="ind">
+      <div class="lbl">MACD</div>
+      <div class="vl" id="macd">--</div>
+    </div>
+  </div>
+</div>
+
+<!-- ALARMS TAB -->
+<div id="panel-alarms" class="panel">
+  <div class="section-title">🔔 Aktive Alarmer</div>
+  <div id="alarmsList"></div>
+  <button class="trade-btn yellow" onclick="addAlarm()" style="margin-top:15px">+ Opret Alarm</button>
+  
+  <div class="section-title" style="margin-top:25px">⚙️ Alarm Parametre</div>
+  <div class="row">
+    <div class="card" style="flex:0 0 calc(25% - 12px)">
+      <label>RSI Overkøbt (>70)</label>
+      <input type="number" id="rsiOverbought" value="70" oninput="updateAlarmParams()">
+    </div>
+    <div class="card" style="flex:0 0 calc(25% - 12px)">
+      <label>RSI Oversolgt (<30)</label>
+      <input type="number" id="rsiOversold" value="30" oninput="updateAlarmParams()">
+    </div>
+    <div class="card" style="flex:0 0 calc(25% - 12px)">
+      <label>Kurs % ændring alarm</label>
+      <input type="number" id="pctChangeAlarm" value="5" step="0.5" oninput="updateAlarmParams()"> %
+    </div>
+    <div class="card" style="flex:0 0 calc(25% - 12px)">
+      <label>Auto-alarm på holdings</label>
+      <select id="autoAlarmHoldings">
+        <option value="true" selected>Ja</option>
+        <option value="false">Nej</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== SESSION BESKYTTELSE ====================
+function checkSession() {
+  const session = localStorage.getItem('userSession');
+  if (!session) {
+    // Ikke logget ind - redirect til login
+    window.location.href = 'login.html';
+    return false;
+  }
+  // Vis brugerinfo i header
+  const user = JSON.parse(session);
+  const userInfo = document.getElementById('userInfo');
+  if (userInfo) {
+    userInfo.textContent = '👤 ' + (user.name || user.email);
+    userInfo.style.display = 'block';
+  }
+  return true;
+}
+
+function logout() {
+  localStorage.removeItem('userSession');
+  window.location.href = 'login.html';
+}
+
+// Tjek session ved indlæsning
+if (!checkSession()) {
+  // Stopper her - redirect er i gang
+}
+
+// ==================== DATA ====================
+// Aktie database med danske og amerikanske aktier
+const stocks = {
+  // Amerikanske (USD)
+  NVDA:  { name:'Nvidia', price:820, change:2.1, sector:'AI/Chip', rsi:28, atr:22, sma20:850, sma50:830, sma200:800, macd:5.2, currency:'USD' },
+  TSLA:  { name:'Tesla', price:245, change:1.5, sector:'EV', rsi:61, atr:8, sma20:240, sma50:235, sma200:250, macd:2.1, currency:'USD' },
+  AAPL:  { name:'Apple', price:182, change:-0.8, sector:'Tech', rsi:45, atr:3.8, sma20:185, sma50:180, sma200:175, macd:0.5, currency:'USD' },
+  MSFT:  { name:'Microsoft', price:410, change:0.5, sector:'Tech', rsi:52, atr:5, sma20:408, sma50:400, sma200:380, macd:1.5, currency:'USD' },
+  AMZN:  { name:'Amazon', price:195, change:-0.3, sector:'E-commerce', rsi:48, atr:4, sma20:193, sma50:190, sma200:185, macd:0.8, currency:'USD' },
+  // Nordiske (DKK)
+  NOVO:  { name:'Novo Nordisk', price:895, change:1.2, sector:'Pharma', rsi:55, atr:15, sma20:890, sma50:880, sma200:850, macd:3.2, currency:'DKK' },
+  VWS:   { name:'Vestas', price:145, change:-0.8, sector:'Energy', rsi:42, atr:3, sma20:148, sma50:150, sma200:155, macd:-1.5, currency:'DKK' },
+  DSV:   { name:'DSV', price:1250, change:0.7, sector:'Transport', rsi:58, atr:18, sma20:1245, sma50:1230, sma200:1200, macd:5.0, currency:'DKK' },
+  MAERSK:{ name:'Maersk', price:9800, change:-1.5, sector:'Shipping', rsi:38, atr:150, sma20:9950, sma50:10000, sma200:10200, macd:-80, currency:'DKK' },
+  COLO:  { name:'Coloplast', price:835, change:0.3, sector:'Medico', rsi:50, atr:10, sma20:832, sma50:825, sma200:810, macd:2.0, currency:'DKK' },
+  // ETF'er
+  XOP:   { name:'OPEC ETF', price:168, change:-1.2, sector:'Energy', rsi:38, atr:4.2, sma20:172, sma50:169, sma200:165, macd:-1.2, currency:'USD' },
+  SPY:   { name:'S&P 500', price:510, change:0.3, sector:'Index', rsi:55, atr:4, sma20:508, sma50:505, sma200:490, macd:1.2, currency:'USD' }
+};
+
+// Standard valutakurser (DKK)
+const fxRates = {
+  USD: 6.9,
+  EUR: 7.45,
+  SEK: 0.62,
+  NOK: 0.68,
+  GBP: 8.5,
+  DKK: 1.0
+};
+
+// Portfolie beholdninger
+let holdings = [
+  { ticker:'XOP', qty:10, buyPrice:170 },
+  { ticker:'AAPL', qty:5, buyPrice:190 },
+  { ticker:'NVDA', qty:2, buyPrice:750 }
+];
+
+// Alarmer
+let alarms = [
+  { ticker:'XOP', type:'warn', pct:8, period:'30 dage', msg:'Nærmer sig peak - overvej at tage gevinst' },
+  { ticker:'AAPL', type:'danger', pct:-4, period:'idag', msg:'Stop-loss niveau nærmer sig' },
+  { ticker:'NVDA', type:'info', pct:0, period:'RSI < 30', msg:'Oversolgt - potentiel opgang' }
+];
+
+// Alarm parametre
+let alarmParams = {
+  rsiOverbought: 70,
+  rsiOversold: 30,
+  pctChangeAlarm: 5,
+  autoAlarmHoldings: true
+};
+
+// ==================== GEBYRBEREGNING (Nordnet Standard) ====================
+// Nordnet Standard: 0.15% af handelsværdi, min 99 DKK, maks 299 DKK
+// Køb udenfor Nordnet: yderligere 0.11%
+function calcFee(tradeValue, outsideNordnet = false) {
+  // Nordnet basis gebyr
+  let fee = tradeValue * 0.0015; // 0.15%
+  
+  // Min/max
+  fee = Math.max(99, Math.min(299, fee));
+  
+  // Ekstra gebyr hvis købt udenfor Nordnet (f.eks. WBK, Danske Bank)
+  if (outsideNordnet) {
+    fee += tradeValue * 0.0011; // Yderligere 0.11%
+  }
+  
+  return Math.round(fee * 100) / 100; // Runde til 2 decimaler
+}
+
+// Beregn totalpris inkl. gebyr og valutaomregning
+function calcTotalCost(qty, pricePerShare, currency, fxRate, outsideNordnet = false) {
+  // Omregn til DKK hvis nødvendigt
+  const priceInDKK = pricePerShare * (fxRates[currency] || 1);
+  const tradeValue = qty * priceInDKK;
+  
+  // Beregn gebyr
+  const fee = calcFee(tradeValue, outsideNordnet);
+  
+  // Total
+  const total = tradeValue + fee;
+  
+  return {
+    tradeValue: Math.round(tradeValue * 100) / 100,
+    fee: fee,
+    total: Math.round(total * 100) / 100,
+    priceInDKK: Math.round(priceInDKK * 100) / 100
+  };
+}
+
+// ==================== POSITION SIZING (Dynamisk) ====================
+// Baseret på beholdning størrelse
+function calcPositionSize(cash, kelly, currency, fxRate) {
+  const maxPos = cash * (kelly / 100);
+  
+  // Check for minimum viable position
+  // Minimum = gebyr + 1 aktie skal give mening økonomisk
+  const samplePrice = 100 * (fxRates[currency] || 1); // Antager minimum 100 DKK per aktie
+  const minCost = calcTotalCost(1, samplePrice, currency, fxRate);
+  const minViable = minCost.total;
+  
+  // Anbefalinger baseret på beholdning
+  let recommendation = '';
+  let maxStocks = 5;
+  
+  if (cash < 2000) {
+    // Under 2000 kr: ETF anbefaling istedet for enkeltaktier
+    recommendation = '⚠️ Under 2.000 DKK: Overvej ETF/sparrow i stedet for enkeltaktier (gebyrer spiser for meget)';
+    maxStocks = 0; // Ingen aktier anbefales
+  } else if (cash < 5000) {
+    // Under 5000 kr: max 1-2 aktier pga gebyrer
+    recommendation = '💡 Under 5.000 DKK: Maks 1-2 aktier pga gebyrer';
+    maxStocks = 2;
+  } else if (cash < 10000) {
+    maxStocks = 3;
+  }
+  
+  // Kelly optimal ( reduceret for sikkerhed )
+  const kellyOpt = Math.min(kelly * 0.8, 8);
+  const kellyPos = cash * (kellyOpt / 100);
+  
+  return {
+    maxPos: Math.round(maxPos),
+    kellyOpt: kellyOpt,
+    kellyPos: Math.round(kellyPos),
+    minViable: Math.round(minViable),
+    recommendation: recommendation,
+    maxStocks: maxStocks,
+    viable: maxPos >= minViable
+  };
+}
+
+// ==================== DAGLIG GEAVINST (FIX: opdateres ALTID) ====================
+function updateDayChange() {
+  let dayChange = 0;
+  holdings.forEach(h => {
+    const s = stocks[h.ticker];
+    if (s) {
+      // Konverter til DKK hvis nødvendigt
+      const priceInDKK = s.price * (fxRates[s.currency] || 1);
+      dayChange += h.qty * priceInDKK * (s.change / 100);
+    }
+  });
+  
+  const dc = document.getElementById('dayChange');
+  dc.textContent = (dayChange >= 0 ? '+' : '') + dayChange.toLocaleString('da-DK', {minimumFractionDigits:0}) + ' DKK';
+  dc.className = 'val ' + (dayChange >= 0 ? 'pos' : 'neg');
+}
+
+// ==================== TABS ====================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById(`panel-${name}`).classList.add('active');
+  
+  if (name === 'alarms') {
+    renderAlarms();
+    // Auto-generer alarmer for holdings hvis aktiveret
+    if (document.getElementById('autoAlarmHoldings').value === 'true') {
+      autoGenerateHoldingsAlarms();
+    }
+  }
+  if (name === 'assistant') {
+    updateTimestamp();
+  }
+}
+
+// ==================== PORTFOLIO ====================
+function calcTotal() {
+  const cash = parseFloat(document.getElementById('cash').value) || 0;
+  let holdingsVal = 0;
+  
+  holdings.forEach(h => {
+    const s = stocks[h.ticker];
+    if (s) {
+      // Konverter til DKK
+      const priceInDKK = s.price * (fxRates[s.currency] || 1);
+      holdingsVal += h.qty * priceInDKK;
+    }
+  });
+  
+  const total = cash + holdingsVal;
+  document.getElementById('totalVal').textContent = total.toLocaleString('da-DK', {minimumFractionDigits:0}) + ' DKK';
+  
+  // DAGLIG GEAVINST - ALTID opdateret (FIX for issue #2)
+  updateDayChange();
+  
+  // Risiko parametre - brugt til anbefaling
+  const kelly = parseFloat(document.getElementById('kelly').value) || 10;
+  const kellyPos = calcPositionSize(cash, kelly, 'DKK', 1);
+  
+  // Opdater RSI indikator farver på holdings
+  renderHoldings();
+  
+  // Generer auto-alarmer for holdings
+  autoGenerateHoldingsAlarms();
+}
+
+function renderHoldings() {
+  const tbody = document.getElementById('holdingsBody');
+  tbody.innerHTML = '';
+  
+  holdings.forEach((h, i) => {
+    const s = stocks[h.ticker];
+    if (!s) return;
+    
+    // Konverter til DKK
+    const priceInDKK = s.price * (fxRates[s.currency] || 1);
+    const val = h.qty * priceInDKK;
+    const pnl = ((s.price - h.buyPrice) / h.buyPrice * 100).toFixed(1);
+    const cls = pnl >= 0 ? 'pos' : 'neg';
+    const currencyIcon = s.currency !== 'DKK' ? ` <span class="info-badge">${s.currency}</span>` : '';
+    
+    // Kun aktienavnet (IKKE købspris feltet) skal linke til AI-assistent
+    tbody.innerHTML += `<tr class="stock-row">
+      <td onclick="analyzeStock('${h.ticker}')" style="cursor:pointer"><b>${h.ticker}</b><span style="color:#888;font-size:0.8em"> - ${s.name}</span>${currencyIcon}</td>
+      <td><input type="number" value="${h.qty}" style="width:60px;background:#111;border:1px solid #333;color:#fff;padding:3px 6px;border-radius:3px" onchange="holdings[${i}].qty=parseFloat(this.value);calcTotal()"></td>
+      <td><input type="number" value="${h.buyPrice}" style="width:70px;background:#111;border:1px solid #333;color:#fff;padding:3px 6px;border-radius:3px" onchange="holdings[${i}].buyPrice=parseFloat(this.value);calcTotal()"></td>
+      <td>${priceInDKK.toFixed(0)}</td>
+      <td class="${cls}">${pnl >= 0 ? '+' : ''}${pnl}%</td>
+      <td>${val.toLocaleString('da-DK', {minimumFractionDigits:0})} DKK</td>
+      <td><button onclick="event.stopPropagation();holdings.splice(${i},1);calcTotal()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.2em">×</button></td>
+    </tr>`;
+  });
+}
+
+function addHolding() {
+  // Brug dropdown istedet for at skrive ticker
+  const sel = prompt('Vælg aktie fra listen:\n' + 
+    'NVDA, TSLA, AAPL, MSFT, AMZN, NOVO, VWS, DSV, MAERSK, COLO, XOP, SPY\n\nEller skriv ticker:').toUpperCase().trim();
+  
+  if (!sel || !stocks[sel]) return alert('Ukendt aktie: ' + sel);
+  
+  const qty = parseFloat(prompt('Antal stk:')) || 1;
+  const buyPrice = parseFloat(prompt('Købspris (DKK):')) || stocks[sel].price * (fxRates[stocks[sel].currency] || 1);
+  holdings.push({ ticker: sel, qty, buyPrice });
+  calcTotal();
+}
+
+// ==================== AI ASSISTANT ====================
+function loadStock() {
+  const sel = document.getElementById('stockSelect').value;
+  if (!sel || !stocks[sel]) return;
+  
+  const s = stocks[sel];
+  const fxRate = fxRates[s.currency] || 1;
+  
+  // Sæt valutakurs automatisk
+  document.getElementById('currencySelect').value = s.currency;
+  document.getElementById('fxRate').value = fxRate.toFixed(2);
+  
+  // Sæt pris i DKK
+  document.getElementById('stockPrice').value = (s.price * fxRate).toFixed(2);
+  
+  renderIndicators(sel);
+  calcRec();
+}
+
+function renderIndicators(ticker) {
+  const s = stocks[ticker];
+  const price = parseFloat(document.getElementById('stockPrice').value) || s.price * (fxRates[s.currency] || 1);
+  
+  // RSI
+  const rsiCls = s.rsi < 30 ? 'buy' : s.rsi > 70 ? 'sell' : 'neutral';
+  document.getElementById('rsi').textContent = s.rsi;
+  document.getElementById('rsi').className = 'vl ' + rsiCls;
+  
+  // ATR
+  document.getElementById('atr').textContent = s.atr;
+  document.getElementById('atr').className = 'vl neutral';
+  
+  // SMA'er
+  document.getElementById('sma20').textContent = s.sma20;
+  document.getElementById('sma50').textContent = s.sma50;
+  document.getElementById('sma200').textContent = s.sma200;
+  
+  const sma20cls = price > s.sma20 ? 'buy' : 'sell';
+  const sma50cls = price > s.sma50 ? 'buy' : 'sell';
+  const sma200cls = price > s.sma200 ? 'buy' : 'sell';
+  
+  document.getElementById('sma20').className = 'vl ' + sma20cls;
+  document.getElementById('sma50').className = 'vl ' + sma50cls;
+  document.getElementById('sma200').className = 'vl ' + sma200cls;
+  
+  // MACD
+  document.getElementById('macd').textContent = (s.macd > 0 ? '+' : '') + s.macd;
+  document.getElementById('macd').className = 'vl ' + (s.macd > 0 ? 'buy' : 'sell');
+}
+
+function calcRec() {
+  const ticker = document.getElementById('stockSelect').value;
+  const box = document.getElementById('analysisBox');
+  
+  if (!ticker) { 
+    box.classList.remove('show'); 
+    return; 
+  }
+  
+  renderIndicators(ticker);
+  
+  const cash = parseFloat(document.getElementById('cash').value) || 0;
+  const priceInput = parseFloat(document.getElementById('stockPrice').value) || 0;
+  const currency = document.getElementById('currencySelect').value;
+  const fxRate = parseFloat(document.getElementById('fxRate').value) || fxRates[currency];
+  
+  // Konverter pris tilbage til original valuta
+  const pricePerShare = priceInput / fxRate;
+  
+  // Risiko parametre
+  const kelly = parseFloat(document.getElementById('kelly').value) / 100;
+  const stopLoss = parseFloat(document.getElementById('stopLoss').value) / 100;
+  const maxLoss = parseFloat(document.getElementById('maxLoss').value) / 100;
+  const rr = parseInt(document.getElementById('rr').value);
+  
+  const s = stocks[ticker];
+  const rsi = s ? s.rsi : 50;
+  
+  // Dynamisk position sizing
+  const posSize = calcPositionSize(cash, kelly * 100, currency, fxRate);
+  
+  // Beregn anbefalet antal aktier baseret på Kelly %
+  const maxQty = Math.floor(posSize.kellyPos / priceInput);
+  
+  // Beregn gebyr for 1 aktie vs 2 aktier (for at vise gebyrpåvirkning)
+  const cost1 = calcTotalCost(1, pricePerShare, currency, fxRate);
+  const cost2 = calcTotalCost(2, pricePerShare, currency, fxRate);
+  
+  // Stop/target priser
+  const sl = priceInput * (1 + stopLoss);
+  const tp = priceInput * (1 + Math.abs(stopLoss) * rr / 100);
+  
+  // Risk/reward
+  const riskAmount = posSize.kellyPos * Math.abs(stopLoss);
+  const rewardAmount = riskAmount * rr;
+  
+  // Bestem signal baseret på RSI + trend
+  let signal = 'HOLD';
+  if (rsi < 35 && priceInput < s.sma50) signal = 'BUY';
+  if (rsi > 65 || priceInput > s.sma200 * 1.1) signal = 'SELL';
+  
+  // RSI zones
+  const rsiZone = rsi < 30 ? '🟢 OVERSOLGT' : rsi > 70 ? '🔴 OVERKØBT' : '🟡 NEUTRAL';
+  
+  // Anbefalingstekst
+  let recText = 'HOLD - Vent på bedre entry';
+  let recCls = 'hold';
+  
+  if (signal === 'BUY' && posSize.viable) {
+    recText = `KØB ${maxQty} stk for ${posSize.kellyPos.toLocaleString('da-DK')} DKK (${(posSize.kellyPos / priceInput).toFixed(1)} @ ${priceInput.toFixed(2)} DKK)`;
+    recCls = '';
+  } else if (signal === 'SELL') {
+    recText = 'SÆLG - Overkøbt territory';
+    recCls = 'sell';
+  } else if (!posSize.viable) {
+    recText = '❌ Position for lille (gebyrer spiser gevinsten)';
+    recCls = 'sell';
+  }
+  
+  // Fee breakdown HTML
+  let feeBox = `<div class="fee-box">
+    <div class="fee-row"><span>Gebyr ${currency}→DKK</span><span>${cost1.fee.toLocaleString('da-DK')} DKK</span></div>
+    <div class="fee-row"><span>1 aktie total</span><span>${cost1.total.toLocaleString('da-DK')} DKK</span></div>
+    <div class="fee-row"><span>2 aktier total</span><span>${cost2.total.toLocaleString('da-DK')} DKK</span></div>
+    <div class="fee-row total"><span>Total (${maxQty} stk)</span><span>${(cost2.total * maxQty / 2).toLocaleString('da-DK')} DKK</span></div>
+  </div>`;
+  
+  // ETF note hvis beholdning er for lille
+  let etfNote = '';
+  if (cash < 2000) {
+    etfNote = `<div class="etf-note">💡 ${posSize.recommendation}<br>Overvej: <b>IEEM</b> (MSCI World ETF) eller <b>SPYL</b> (S&P 500 ETF) for små beløb</div>`;
+  }
+  
+  // Currency indicator
+  const currencyIndicator = currency !== 'DKK' ? `<span class="info-badge">${currency}/DKK: ${fxRate}</span>` : '';
+  
+  box.innerHTML = `
+    <h3>💡 ${ticker} ANALYSE <span style="color:#888;font-size:0.7em">${s.name}</span> ${currencyIndicator}</h3>
+    <div class="meta">💰 KONTANT: ${cash.toLocaleString('da-DK')} DKK &nbsp;|&nbsp; RSI: ${rsi} (${rsiZone})</div>
+    <div class="rec ${recCls}">📊 ANBEFALING: ${recText}</div>
+    ${feeBox}
+    ${etfNote}
+    <div class="meta">⚠️ Nordnet gebyr: 0.15% (min 99 DKK, maks 299 DKK)</div>
+    
+    <div class="section-title" style="margin-top:12px">⚙️ RISIKO-BREAKDOWN</div>
+    <div class="risk-row"><span>Max position (${(kelly*100).toFixed(0)}%)</span><span>${posSize.maxPos.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span>Stop-loss (${(stopLoss*100).toFixed(1)}%)</span><span>Tab max ${riskAmount.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span>Risk/Reward (1:${rr})</span><span>Potentiel gevinst ${rewardAmount.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span>Kelly optimal (${posSize.kellyOpt.toFixed(1)}%)</span><span>${posSize.kellyPos.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span>Min. viable position</span><span>${posSize.minViable.toLocaleString('da-DK')} DKK</span></div>
+    
+    <div class="section-title" style="margin-top:12px">🎯 STRATEGI</div>
+    <div class="risk-row"><span>Entry</span><span>~${priceInput.toFixed(2)} DKK</span></div>
+    <div class="risk-row"><span>Stop-loss</span><span>${sl.toFixed(2)} DKK (${(stopLoss*100).toFixed(1)}%)</span></div>
+    <div class="risk-row"><span>Take-profit</span><span>${tp.toFixed(2)} DKK (+${((tp/priceInput-1)*100).toFixed(1)}%)</span></div>
+    
+    <div class="section-title" style="margin-top:12px">⚠️ ALARM-TRIGGERS</div>
+    <div class="risk-row"><span>🔴 Stop-loss rammer</span><span>ved ${sl.toFixed(2)} DKK</span></div>
+    <div class="risk-row"><span>🟢 Take-profit rammer</span><span>ved ${tp.toFixed(2)} DKK</span></div>
+    <div class="risk-row"><span>📊 Volatilitet</span><span>${(s.atr/priceInput*100).toFixed(1)}% ATR</span></div>
+    <div class="risk-row"><span>📉 Max tab grænse (${(maxLoss*100).toFixed(1)}%)</span><span>ved ${(priceInput * (1-maxLoss)).toFixed(2)} DKK</span></div>`;
+  
+  box.classList.add('show');
+  
+  // Generer alarms for denne aktie
+  generateAlarmsForStock(ticker, priceInput, rsi);
+}
+
+function analyzeStock(ticker) {
+  document.getElementById('stockSelect').value = ticker;
+  if (stocks[ticker]) {
+    const s = stocks[ticker];
+    document.getElementById('stockPrice').value = (s.price * (fxRates[s.currency] || 1)).toFixed(2);
+    document.getElementById('currencySelect').value = s.currency;
+    document.getElementById('fxRate').value = (fxRates[s.currency] || 1).toFixed(2);
+  }
+  switchTab('assistant');
+  calcRec();
+}
+
+// ==================== ALARMS ====================
+// Auto-generer alarmer for holdings
+function autoGenerateHoldingsAlarms() {
+  if (document.getElementById('autoAlarmHoldings').value !== 'true') return;
+  
+  const rsiOverbought = parseInt(document.getElementById('rsiOverbought').value) || 70;
+  const rsiOversold = parseInt(document.getElementById('rsiOversold').value) || 30;
+  const pctChange = parseFloat(document.getElementById('pctChangeAlarm').value) || 5;
+  
+  holdings.forEach(h => {
+    const s = stocks[h.ticker];
+    if (!s) return;
+    
+    const priceInDKK = s.price * (fxRates[s.currency] || 1);
+    
+    // Tjek om alarm allerede eksisterer
+    const exists = alarms.find(a => a.ticker === h.ticker && a.type === 'info');
+    
+    if (!exists) {
+      // RSI alarm
+      if (s.rsi < rsiOversold) {
+        alarms.push({
+          ticker: h.ticker,
+          type: 'info',
+          pct: 0,
+          period: `RSI ${s.rsi}`,
+          msg: `Oversolgt (RSI: ${s.rsi}) - potentiel opgang`
+        });
+      } else if (s.rsi > rsiOverbought) {
+        alarms.push({
+          ticker: h.ticker,
+          type: 'warn',
+          pct: 0,
+          period: `RSI ${s.rsi}`,
+          msg: `Overkøbt (RSI: ${s.rsi}) - overvej at tage gevinst`
+        });
+      }
+      
+      // % ændring alarm
+      if (Math.abs(s.change) >= pctChange) {
+        alarms.push({
+          ticker: h.ticker,
+          type: s.change > 0 ? 'info' : 'danger',
+          pct: s.change,
+          period: 'dag',
+          msg: `Kurs ${s.change > 0 ? 'steg' : 'faldt'} ${s.change.toFixed(1)}% i dag`
+        });
+      }
+    }
+  });
+}
+
+// Generer alarmer for en specifik aktie (i AI Assistant)
+function generateAlarmsForStock(ticker, price, rsi) {
+  const stopLoss = parseFloat(document.getElementById('stopLoss').value) / 100;
+  const rr = parseInt(document.getElementById('rr').value);
+  
+  const sl = price * (1 + stopLoss);
+  const tp = price * (1 + Math.abs(stopLoss) * rr / 100);
+  
+  // Køb alarm
+  if (rsi < 35) {
+    const exists = alarms.find(a => a.ticker === ticker && a.period === 'køb-anbefaling');
+    if (!exists) {
+      alarms.push({
+        ticker,
+        type: 'info',
+        pct: 0,
+        period: 'køb-anbefaling',
+        msg: `BUY signal - RSI ${rsi} (oversolgt zone)`
+      });
+    }
+  }
+  
+  // Salg alarm
+  if (rsi > 65) {
+    const exists = alarms.find(a => a.ticker === ticker && a.period === 'salg-anbefaling');
+    if (!exists) {
+      alarms.push({
+        ticker,
+        type: 'warn',
+        pct: 0,
+        period: 'salg-anbefaling',
+        msg: `SELL signal - RSI ${rsi} (overkøbt zone)`
+      });
+    }
+  }
+}
+
+function renderAlarms() {
+  const list = document.getElementById('alarmsList');
+  list.innerHTML = '';
+  
+  if (alarms.length === 0) {
+    list.innerHTML = '<div class="alarm-item info"><div class="desc">Ingen aktive alarmer</div></div>';
+    return;
+  }
+  
+  alarms.forEach((a, i) => {
+    const typeMap = { warn:'alarm-item', danger:'alarm-item critical', info:'alarm-item info' };
+    const iconMap = { warn:'⚠️', danger:'🚨', info:'📰' };
+    list.innerHTML += `<div class="${typeMap[a.type]||'alarm-item'}">
+      <div class="title">${iconMap[a.type]||'🔔'} ${a.ticker} ${a.pct ? (a.pct > 0 ? '+'+a.pct : a.pct)+'%' : ''} ${a.period ? '('+a.period+')' : ''}</div>
+      <div class="desc">${a.msg}</div>
+      <div class="time">${new Date().toLocaleDateString('da-DK')} ${new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})}</div>
+      <button onclick="alarms.splice(${i},1);renderAlarms()" style="margin-top:6px;background:none;border:1px solid #444;color:#666;padding:2px 8px;border-radius:3px;font-size:0.75em;cursor:pointer">Fjern</button>
+    </div>`;
+  });
+}
+
+function addAlarm() {
+  const ticker = prompt('Ticker:').toUpperCase().trim();
+  if (!ticker) return;
+  const msg = prompt('Alarm besked:') || 'Tjek denne aktie';
+  const pct = parseFloat(prompt('Procent grænse (f.eks. -5 eller +8):')) || 0;
+  const period = prompt('Periode (f.eks. dag, uge, manuel):') || 'manuel';
+  alarms.push({ ticker, type: pct > 0 ? 'warn' : 'danger', pct, period, msg });
+  renderAlarms();
+}
+
+// Tilføj alarm direkte fra AI-assistent
+function addAlarmFromAssistant() {
+  const ticker = document.getElementById('stockSelect').value;
+  if (!ticker) {
+    alert('Vælg først en aktie i dropdown');
+    return;
+  }
+  
+  const price = parseFloat(document.getElementById('stockPrice').value) || 0;
+  const s = stocks[ticker];
+  const rsi = s ? s.rsi : 50;
+  const stopLoss = parseFloat(document.getElementById('stopLoss').value) / 100;
+  
+  const sl = price * (1 + stopLoss);
+  const tp = price * (1 + Math.abs(stopLoss) * parseInt(document.getElementById('rr').value) / 100);
+  
+  const msg = prompt('Alarm besked:', `${ticker} - Stop-loss: ${sl.toFixed(2)} DKK, Take-profit: ${tp.toFixed(2)} DKK`) || 'Tjek denne aktie';
+  const pct = parseFloat(prompt('Procent grænse:', '5')) || 5;
+  
+  alarms.push({ ticker, type: 'warn', pct, period: 'manuel', msg });
+  renderAlarms();
+  switchTab('alarms');
+}
+
+function updateAlarmParams() {
+  alarmParams.rsiOverbought = parseInt(document.getElementById('rsiOverbought').value) || 70;
+  alarmParams.rsiOversold = parseInt(document.getElementById('rsiOversold').value) || 30;
+  alarmParams.pctChangeAlarm = parseFloat(document.getElementById('pctChangeAlarm').value) || 5;
+  alarmParams.autoAlarmHoldings = document.getElementById('autoAlarmHoldings').value === 'true';
+}
+
+// ==================== VERSION SELECTOR ====================
+function loadVersion() {
+  const ver = document.getElementById('versionSelect').value;
+  if (ver === 'v3') {
+    // Allerede på v3
+    return;
+  }
+  // Redirect til version filer (hvis de eksisterer)
+  if (ver === 'v2') {
+    window.open('ai-trading-v2.html', '_blank');
+  } else if (ver === 'v1') {
+    window.open('ai-trading-v1.html', '_blank');
+  }
+  document.getElementById('versionSelect').value = 'v3';
+}
+
+// ==================== TIMESTAMP ====================
+function updateTimestamp() {
+  const now = new Date();
+  const formatted = now.toLocaleDateString('da-DK') + ' ' + now.toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('lastUpdate').textContent = 'Opdateret: ' + formatted;
+}
+
+// ==================== INIT ====================
+calcTotal();
+updateTimestamp();
+
+// Opdater timestamp hvert minut
+setInterval(updateTimestamp, 60000);
+</script>
+</body>
+</html>

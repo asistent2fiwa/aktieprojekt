@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment files (indeholder credentials)
+.env
+.env.local
+.env.production
+*.env
+
+# Local storage data (session/cookie data)
+*.localStorage
+*.sessionStorage
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+
+# Backup files
+*.bak
+*.backup
