@@ -445,20 +445,111 @@ tr.stock-row:hover { cursor: pointer; }
     <tbody id="holdingsBody"></tbody>
   </table>
   <div id="addStockRow" style="display:flex;gap:10px;margin-top:12px;align-items:center">
-    <select id="stockSelector" style="flex:1">
+    <select id="stockSelector" style="flex:1" onchange="selectStock(this.value)">
       <option value="">Vælg aktie...</option>
-      <option value="NVDA">NVDA - NVIDIA</option>
-      <option value="TSLA">TSLA - Tesla</option>
-      <option value="AAPL">AAPL - Apple</option>
-      <option value="MSFT">MSFT - Microsoft</option>
-      <option value="AMZN">AMZN - Amazon</option>
-      <option value="GOOGL">GOOGL - Alphabet</option>
-      <option value="META">META - Meta</option>
-      <option value="NOVO">NOVO - Novo Nordisk</option>
-      <option value="VWS">VWS - Vestas</option>
-      <option value="DSV">DSV - DSV</option>
-      <option value="MAERSK">MAERSK - Maersk</option>
-      <option value="COLO">COLO - Coloplast</option>
+      <optgroup label="🇩🇰 Danske Aktier">
+        <option value="NOVO-B.CO">NOVO-B - Novo Nordisk</option>
+        <option value="VWS.CO">VWS - Vestas Wind Systems</option>
+        <option value="DSV.CO">DSV - DSV Panalpina</option>
+        <option value="MAERSK-B.CO">MAERSK-B - A.P. Møller Maersk</option>
+        <option value="COLO-B.CO">COLO-B - Coloplast</option>
+        <option value="PNDORA.CO">PNDORA - Pandora</option>
+        <option value="CARL-B.CO">CARL-B - Carlsberg</option>
+        <option value="DANSKE.CO">DANSKE - Danske Bank</option>
+        <option value="JYSK.CO">JYSK - Jyske Bank</option>
+        <option value="SYDB.CO">SYDB - Sydbank</option>
+        <option value="SPNOR-B.CO">SPNOR-B - Spar Nord Bank</option>
+        <option value="ALMB.CO">ALMB - Alm. Brand</option>
+        <option value="TOP.CO">TOP - Topdanmark</option>
+        <option value="TRYG.CO">TRYG - Tryg</option>
+        <option value="NKT.CO">NKT - NKT</option>
+        <option value="ALK-B.CO">ALK-B - ALK-Abelló</option>
+        <option value="LUN.CO">LUN - H. Lundbeck</option>
+        <option value="BVNK-B.CO">BVNK-B - Bavarian Nordic</option>
+        <option value="EVAXION.CO">EVAXION - Evaxion Biotech</option>
+        <option value="CTD.CO">CTD - CTD Holding</option>
+        <option value="DKK.CO">DKK - D.KSHolding</option>
+      </optgroup>
+      <optgroup label="🇺🇸 Amerikanske Aktier">
+        <option value="NVDA">NVDA - NVIDIA</option>
+        <option value="TSLA">TSLA - Tesla</option>
+        <option value="AAPL">AAPL - Apple</option>
+        <option value="MSFT">MSFT - Microsoft</option>
+        <option value="AMZN">AMZN - Amazon</option>
+        <option value="GOOGL">GOOGL - Alphabet (Google)</option>
+        <option value="META">META - Meta Platforms</option>
+        <option value="NFLX">NFLX - Netflix</option>
+        <option value="AMD">AMD - AMD</option>
+        <option value="INTC">INTC - Intel</option>
+        <option value="CRM">CRM - Salesforce</option>
+        <option value="ORCL">ORCL - Oracle</option>
+        <option value="PYPL">PYPL - PayPal</option>
+        <option value="COIN">COIN - Coinbase</option>
+        <option value="RIVN">RIVN - Rivian</option>
+        <option value="LCID">LCID - Lucid</option>
+        <option value="PLTR">PLTR - Palantir</option>
+        <option value="SNOW">SNOW - Snowflake</option>
+        <option value="MDB">MDB - MongoDB</option>
+        <option value="SQ">SQ - Square (Block)</option>
+        <option value="UBER">UBER - Uber</option>
+        <option value="ABNB">ABNB - Airbnb</option>
+        <option value="PYSC">PYSC - Palantir (ny)</option>
+      </optgroup>
+      <optgroup label="📊 ETF'er">
+        <option value="SPY">SPY - S&P 500 ETF</option>
+        <option value="QQQ">QQQ - Nasdaq 100 ETF</option>
+        <option value="VTI">VTI - Vanguard Total Stock Market</option>
+        <option value="IWM">IWM - Russell 2000</option>
+        <option value="DIA">DIA - Dow Jones ETF</option>
+        <option value="GLD">GLD - Guld ETF</option>
+        <option value="TLT">TLT - Treasury Bond ETF</option>
+        <option value="VNQ">VNQ - Real Estate ETF</option>
+        <option value="XLE">XLE - Energy ETF</option>
+        <option value="ARKK">ARKK - ARK Innovation ETF</option>
+        <option value="MSOS">MSOS - US Cannabis ETF</option>
+        <option value="BITO">BITO - Bitcoin ETF (ProShares)</option>
+        <option value="ETHA">ETHA - Ethereum ETF</option>
+        <option value="IAU">IAU - Guld (iShares)</option>
+        <option value="SLV">SLV - Sølv ETF</option>
+        <option value="UNG">UNG - Natural Gas ETF</option>
+        <option value="USO">USO - Crude Oil ETF</option>
+      </optgroup>
+      <optgroup label="🪙 Kryptovaluta">
+        <option value="BTC-USD">BTC - Bitcoin</option>
+        <option value="ETH-USD">ETH - Ethereum</option>
+        <option value="SOL-USD">SOL - Solana</option>
+        <option value="BNB-USD">BNB - Binance Coin</option>
+        <option value="XRP-USD">XRP - Ripple</option>
+        <option value="ADA-USD">ADA - Cardano</option>
+        <option value="DOGE-USD">DOGE - Dogecoin</option>
+        <option value="DOT-USD">DOT - Polkadot</option>
+        <option value="AVAX-USD">AVAX - Avalanche</option>
+        <option value="LINK-USD">LINK - Chainlink</option>
+        <option value="MATIC-USD">MATIC - Polygon</option>
+        <option value="UNI-USD">UNI - Uniswap</option>
+      </optgroup>
+      <optgroup label="🌍 Europæiske Aktier">
+        <option value="ASML.AS">ASML - Nederlandene</option>
+        <option value="SAP.DE">SAP - Tyskland (Frankfurt)</option>
+        <option value="ABB.SW">ABB - Schweiz (SIX)</option>
+        <option value="NESN.SW">NESN - Nestlé (Schweiz)</option>
+        <option value="SHEL.L">SHEL - Shell (Holland/UK)</option>
+        <option value="ULVR.L">ULVR - Unilever (Holland/UK)</option>
+        <option value="TTE.PA">TTE - TotalEnergies (Frankrig)</option>
+        <option value="MC.PA">MC - LVMH (Frankrig)</option>
+        <option value="AIR.PA">AIR - Airbus (Frankrig)</option>
+        <option value="SIE.DE">SIE - Siemens (Tyskland)</option>
+        <option value="BMWG.DE">BMWG - BMW (Tyskland)</option>
+        <option value="VOW3.DE">VOW3 - Volkswagen (Tyskland)</option>
+        <option value="ALV.DE">ALV - Allianz (Tyskland)</option>
+        <option value="BAS.DE">BAS - BASF (Tyskland)</option>
+        <option value="BNP.PA">BNP - BNP Paribas</option>
+        <option value="HSBA.L">HSBA - HSBC</option>
+        <option value="AZN.L">AZN - AstraZeneca</option>
+        <option value="NVO">NVO - Novo Nordisk (US)</option>
+        <option value="ERIC-A.CO">ERIC-A - Ericsson</option>
+        <option value="KTB.ST">KTB - Klarna</option>
+      </optgroup>
     </select>
     <input type="number" id="stockQty" placeholder="Antal" style="width:80px" min="1">
     <input type="number" id="stockBuyPrice" placeholder="Købspris" style="width:100px">
@@ -490,7 +581,7 @@ tr.stock-row:hover { cursor: pointer; }
     <div class="card" style="flex:0 0 calc(30% - 10px)">
       <label>Aktiekurs (DKK)</label>
       <div style="display:flex;gap:6px;align-items:center">
-        <input type="number" id="stockPrice" placeholder="f.eks. 170" oninput="calcRec()" style="flex:1">
+        <input type="number" id="stockPrice" placeholder="Aktiekurs" oninput="calcRec()" style="flex:1">
         <button class="trade-btn" onclick="refreshPrice()" id="refreshBtn" title="Opdater pris via Yahoo Finance" style="padding:6px 10px;font-size:0.8em">🔄</button>
       </div>
       <div id="priceStatus" style="font-size:0.72em;color:#666;margin-top:3px"></div>
@@ -726,16 +817,25 @@ async function fetchAllPrices(symbols) {
   if (priceCache.timestamp &&
       (Date.now() - priceCache.timestamp) < CACHE_DURATION &&
       symbols.every(s => priceCache.data[s])) {
+    console.log('[Batch] Brugte cache');
     return priceCache.data;
   }
 
   // Brug Yahoo Finance batch API
   const symbolsParam = symbols.join(',');
   const proxyUrl = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbolsParam}?interval=1d&range=1d`;
+  console.log('[Batch] Henter priser for:', symbols, 'URL:', proxyUrl);
 
   try {
-    const response = await fetch(proxyUrl);
+    // Timeout på 10 sekunder
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(proxyUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    console.log('[Batch] Response status:', response.status);
     const data = await response.json();
+    console.log('[Batch] Data OK:', !!data.chart);
 
     // Parse alle symboler
     const results = {};
@@ -773,20 +873,50 @@ async function fetchAllPrices(symbols) {
     // Gem i cache
     priceCache.data = results;
     priceCache.timestamp = Date.now();
+    console.log('[Batch] Cached', Object.keys(results).length, 'priser');
 
     return results;
   } catch (error) {
-    console.error('Batch fetch error:', error);
+    console.error('[Batch] Fetch error:', error);
+    if (error.name === 'AbortError') {
+      console.warn('[Batch] Timeout - returnerer null');
+    }
     return null;
   }
 }
 
+// ==================== WEEKEND & UTILITY ====================
+function isWeekend() {
+  const day = new Date().getDay();
+  return day === 0 || day === 6; // Sunday or Saturday
+}
+
+function getLastTradingDay() {
+  const now = new Date();
+  const day = now.getDay();
+  if (day === 0) now.setDate(now.getDate() - 2); // Sunday → Friday
+  if (day === 6) now.setDate(now.getDate() - 1); // Saturday → Friday
+  return now.toLocaleDateString('da-DK');
+}
+
 // ==================== YAHOO FINANCE API (SINGLE - fallback) ====================
 async function fetchYahooPrice(symbol) {
+  console.log('[Yahoo] Henter pris for:', symbol);
   try {
     const proxyUrl = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
-    const response = await fetch(proxyUrl);
+    console.log('[Yahoo] Proxy URL:', proxyUrl);
+
+    // Timeout på 10 sekunder
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(proxyUrl, { signal: controller.signal });
+    console.log('[Yahoo] Response status:', response.status);
+    clearTimeout(timeoutId);
+
     const data = await response.json();
+    console.log('[Yahoo] Data mottatt:', JSON.stringify(data).substring(0, 300));
+
     if (data.chart && data.chart.result && data.chart.result[0]) {
       const meta = data.chart.result[0].meta;
       const result = data.chart.result[0];
@@ -802,6 +932,7 @@ async function fetchYahooPrice(symbol) {
           volume = quote.volume && quote.volume[lastIdx];
         }
       }
+      console.log('[Yahoo] Success:', meta.regularMarketPrice, meta.currency, meta.marketState);
       return {
         price: meta.regularMarketPrice,
         prevClose: meta.previousClose,
@@ -815,24 +946,32 @@ async function fetchYahooPrice(symbol) {
         success: true
       };
     }
+    console.warn('[Yahoo] Ingen result i response');
+    return { success: false, error: 'Ingen data i response' };
   } catch (error) {
-    console.error('Yahoo error:', error);
+    console.error('[Yahoo] Fetch error:', error);
+    if (error.name === 'AbortError') {
+      console.warn('[Yahoo] Timeout - prøver fallback');
+    }
     // Fallback: prøv allorigins
     try {
       const fallbackUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`)}`;
+      console.log('[Yahoo] Prøver fallback URL:', fallbackUrl);
       const resp = await fetch(fallbackUrl);
       const data = await resp.json();
+      console.log('[Yahoo] Fallback response OK:', !!data.chart);
       if (data.chart && data.chart.result && data.chart.result[0]) {
         const meta = data.chart.result[0].meta;
         return {
           price: meta.regularMarketPrice,
           prevClose: meta.previousClose,
           currency: meta.currency || 'USD',
+          marketState: meta.marketState || 'CLOSED',
           success: true
         };
       }
-    } catch (e2) { console.error('Fallback also failed:', e2); }
-    return { success: false };
+    } catch (e2) { console.error('[Yahoo] Fallback also failed:', e2); }
+    return { success: false, error: error.message };
   }
 }
 
@@ -975,6 +1114,9 @@ function refreshPrice() {
   fetchAndUpdatePrice(ticker);
 }
 
+// Price cache for offline fallback
+let priceCacheMap = {};
+
 async function fetchAndUpdatePrice(ticker) {
   const statusEl = document.getElementById('priceStatus');
   const priceEl = document.getElementById('stockPrice');
@@ -984,7 +1126,23 @@ async function fetchAndUpdatePrice(ticker) {
 
   const result = await getStockPrice(ticker);
 
+  // Cache den hentede pris uanset hvad
+  const currentCached = priceCacheMap[ticker];
+
   if (result.success && result.price) {
+    // Gem i cache
+    priceCacheMap[ticker] = {
+      price: result.price,
+      prevClose: result.prevClose,
+      currency: result.currency,
+      marketState: result.marketState,
+      timestamp: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'}),
+      open: result.open,
+      high: result.high,
+      low: result.low,
+      volume: result.volume
+    };
+
     const fxRate = parseFloat(document.getElementById('fxRate').value) || fxRates[result.currency] || 1;
     const priceInDKK = result.price * fxRate;
     priceEl.value = priceInDKK.toFixed(2);
@@ -993,7 +1151,6 @@ async function fetchAndUpdatePrice(ticker) {
     if (stocks[ticker]) {
       stocks[ticker].price = result.price;
       stocks[ticker].currency = result.currency;
-      // Beregn daglig ændring hvis prevClose er tilgængelig
       if (result.prevClose) {
         const pctChange = ((result.price - result.prevClose) / result.prevClose * 100);
         stocks[ticker].change = parseFloat(pctChange.toFixed(2));
@@ -1001,60 +1158,110 @@ async function fetchAndUpdatePrice(ticker) {
       }
     }
 
-    // Opdater daglig data sektion med OHLCV
     const fxRateForUI = fxRate;
-    if (result.prevClose) {
-      const pctChange = ((result.price - result.prevClose) / result.prevClose * 100).toFixed(2);
-      const changeEl = document.getElementById('dailyChangeBox');
-      if (changeEl) {
-        const sign = pctChange >= 0 ? '+' : '';
-        const changeInDKK = ((result.price - result.prevClose) * fxRateForUI).toFixed(0);
-        changeEl.innerHTML = `${sign}${pctChange}%<br><span style="font-size:0.75em;color:#aaa">${changeInDKK >= 0 ? '+' : ''}${parseInt(changeInDKK).toLocaleString('da-DK')} DKK</span>`;
-        changeEl.className = 'val ' + (pctChange >= 0 ? 'pos' : 'neg');
+
+    // === WEEKEND / CLOSED MARKET VISNING ===
+    const weekend = isWeekend();
+    const marketClosed = result.marketState === 'CLOSED' || result.marketState === 'PRE' || result.marketState === 'POST';
+
+    if (weekend || marketClosed) {
+      const lastDay = getLastTradingDay();
+      if (result.prevClose) {
+        const prevEl = document.getElementById('dailyPrevClose');
+        if (prevEl) prevEl.textContent = (result.prevClose * fxRateForUI).toFixed(2);
+        statusEl.innerHTML = `🔒 <b>MARKED LUKKET</b> — Sidste lukket: <b>${lastDay}</b> — <b>${result.prevClose.toFixed(2)} ${result.currency}</b> (${(result.prevClose * fxRateForUI).toFixed(2)} DKK)`;
+        statusEl.style.color = 'var(--yellow)';
+        priceEl.style.borderColor = 'var(--border)';
+      } else {
+        statusEl.innerHTML = `🔒 <b>MARKED LUKKET</b> — Sidste lukket: <b>${lastDay}</b>`;
+        statusEl.style.color = 'var(--yellow)';
       }
-    }
-    // Prev close (yesterday's close)
-    if (result.prevClose) {
-      const prevEl = document.getElementById('dailyPrevClose');
-      if (prevEl) prevEl.textContent = (result.prevClose * fxRateForUI).toFixed(2);
-    }
-    // Open
-    if (result.open) {
-      const openEl = document.getElementById('dailyOpen');
-      if (openEl) openEl.textContent = (result.open * fxRateForUI).toFixed(2);
-    }
-    // High
-    if (result.high) {
-      const highEl = document.getElementById('dailyHigh');
-      if (highEl) highEl.textContent = (result.high * fxRateForUI).toFixed(2);
-    }
-    // Low
-    if (result.low) {
-      const lowEl = document.getElementById('dailyLow');
-      if (lowEl) lowEl.textContent = (result.low * fxRateForUI).toFixed(2);
-    }
-    // Volume
-    if (result.volume) {
-      const volEl = document.getElementById('dailyVolume');
-      if (volEl) {
-        const volStr = result.volume >= 1e6
-          ? (result.volume / 1e6).toFixed(1) + 'M'
-          : result.volume >= 1e3
-            ? (result.volume / 1e3).toFixed(0) + 'K'
-            : result.volume.toLocaleString('da-DK');
-        volEl.textContent = volStr;
+    } else {
+      // Live markedsdata
+      if (result.prevClose) {
+        const pctChange = ((result.price - result.prevClose) / result.prevClose * 100).toFixed(2);
+        const changeEl = document.getElementById('dailyChangeBox');
+        if (changeEl) {
+          const sign = pctChange >= 0 ? '+' : '';
+          const changeInDKK = ((result.price - result.prevClose) * fxRateForUI).toFixed(0);
+          changeEl.innerHTML = `${sign}${pctChange}%<br><span style="font-size:0.75em;color:#aaa">${changeInDKK >= 0 ? '+' : ''}${parseInt(changeInDKK).toLocaleString('da-DK')} DKK</span>`;
+          changeEl.className = 'val ' + (pctChange >= 0 ? 'pos' : 'neg');
+        }
       }
+      if (result.prevClose) {
+        const prevEl = document.getElementById('dailyPrevClose');
+        if (prevEl) prevEl.textContent = (result.prevClose * fxRateForUI).toFixed(2);
+      }
+      if (result.open) {
+        const openEl = document.getElementById('dailyOpen');
+        if (openEl) openEl.textContent = (result.open * fxRateForUI).toFixed(2);
+      }
+      if (result.high) {
+        const highEl = document.getElementById('dailyHigh');
+        if (highEl) highEl.textContent = (result.high * fxRateForUI).toFixed(2);
+      }
+      if (result.low) {
+        const lowEl = document.getElementById('dailyLow');
+        if (lowEl) lowEl.textContent = (result.low * fxRateForUI).toFixed(2);
+      }
+      if (result.volume) {
+        const volEl = document.getElementById('dailyVolume');
+        if (volEl) {
+          const volStr = result.volume >= 1e6
+            ? (result.volume / 1e6).toFixed(1) + 'M'
+            : result.volume >= 1e3
+              ? (result.volume / 1e3).toFixed(0) + 'K'
+              : result.volume.toLocaleString('da-DK');
+          volEl.textContent = volStr;
+        }
+      }
+
+      const flag = result.currency === 'USD' ? '💵' : result.currency === 'DKK' ? '🇩🇰' : '💱';
+      statusEl.textContent = `${flag} Live: ${result.price.toFixed(2)} ${result.currency} → ${priceInDKK.toFixed(2)} DKK`;
+      statusEl.style.color = 'var(--green)';
+      priceEl.style.borderColor = 'var(--border)';
     }
 
-    const flag = result.currency === 'USD' ? '💵' : result.currency === 'DKK' ? '🇩🇰' : '💱';
-    statusEl.textContent = `${flag} Live: ${result.price.toFixed(2)} ${result.currency} → ${priceInDKK.toFixed(2)} DKK`;
-    statusEl.style.color = 'var(--green)';
-    priceEl.style.borderColor = 'var(--border)';
     calcRec();
   } else {
-    statusEl.textContent = '⚠️ Kunne ikke hente live pris. Brugte hardcoded data.';
-    statusEl.style.color = 'var(--yellow)';
-    priceEl.style.borderColor = 'var(--border)';
+    // Fetch fejlede – vis cached data hvis tilgængelig
+    if (currentCached) {
+      const fxRate = parseFloat(document.getElementById('fxRate').value) || fxRates[currentCached.currency] || 1;
+      const cachedPriceDKK = currentCached.price * fxRate;
+      priceEl.value = cachedPriceDKK.toFixed(2);
+      statusEl.innerHTML = `<span style="color:var(--orange)">⚠️ Kunne ikke hente live pris — Vist cached data fra kl. ${currentCached.timestamp}</span>`;
+      statusEl.style.color = 'var(--orange)';
+      priceEl.style.borderColor = 'var(--orange)';
+
+      // Opdater OHLCV fra cache
+      const fxRateForUI = fxRate;
+      if (currentCached.prevClose) {
+        const prevEl = document.getElementById('dailyPrevClose');
+        if (prevEl) prevEl.textContent = (currentCached.prevClose * fxRateForUI).toFixed(2);
+      }
+      if (currentCached.open) {
+        const openEl = document.getElementById('dailyOpen');
+        if (openEl) openEl.textContent = (currentCached.open * fxRateForUI).toFixed(2);
+      }
+      if (currentCached.high) {
+        const highEl = document.getElementById('dailyHigh');
+        if (highEl) highEl.textContent = (currentCached.high * fxRateForUI).toFixed(2);
+      }
+      if (currentCached.low) {
+        const lowEl = document.getElementById('dailyLow');
+        if (lowEl) lowEl.textContent = (currentCached.low * fxRateForUI).toFixed(2);
+      }
+
+      // Opdater også hardcoded data fra cache
+      if (stocks[ticker]) {
+        stocks[ticker].price = currentCached.price;
+        stocks[ticker].currency = currentCached.currency;
+      }
+    } else {
+      statusEl.innerHTML = `<span style="color:var(--red)">❌ Kunne ikke hente pris. Tjek internetforbindelsen og prøv igen.</span>`;
+      statusEl.style.color = 'var(--red)';
+      priceEl.style.borderColor = 'var(--red)';
+    }
   }
 }
 
@@ -1267,8 +1474,10 @@ async function loadStock() {
   document.getElementById('currencySelect').value = s.currency;
   document.getElementById('fxRate').value = fxRate.toFixed(2);
 
-  // Nulstil daglig data
+  // Nulstil daglig data og pris felt
   resetDailyDataUI();
+  const priceEl = document.getElementById('stockPrice');
+  priceEl.value = ''; // Nulstil så brugeren ikke ser gammel værdi
   
   // Prøv at hente live pris først
   await fetchAndUpdatePrice(sel);
