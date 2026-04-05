@@ -476,6 +476,16 @@ tr.stock-row:hover { cursor: pointer; }
   color: var(--cyan);
 }
 
+/* ==================== TOAST ANIMATIONS ==================== */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+
 /* ==================== MOBILE CHAT BUTTON ==================== */
 .mobile-chat-btn {
   display: none;
@@ -502,6 +512,10 @@ tr.stock-row:hover { cursor: pointer; }
   .tabs { flex-wrap: wrap; gap: 2px; }
   .tab { padding: 8px 12px; font-size: 0.85em; }
 }
+.loading { opacity: 0.5; pointer-events: none; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #333; border-top-color: #00e5ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; }
 </style>
 </head>
 <body>
@@ -599,6 +613,17 @@ tr.stock-row:hover { cursor: pointer; }
     <input type="number" id="stockQty" placeholder="Antal" style="width:80px" min="1">
     <input type="number" id="stockBuyPrice" placeholder="Købspris" style="width:100px">
     <button class="trade-btn" onclick="addHoldingFromDropdown()">+ Tilføj</button>
+  </div>
+
+  <div style="margin-top:15px;padding:10px;background:#1a1a1a;border-radius:6px;">
+    <div style="font-size:0.8em;color:#666;margin-bottom:8px;">BACKUP &amp; RESTORE</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="exportPortfolio()" style="background:#222;border:1px solid #444;color:#888;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:0.8em;">📤 Eksport</button>
+      <label style="background:#222;border:1px solid #444;color:#888;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:0.8em;">
+        📥 Import
+        <input type="file" accept=".json" onchange="importPortfolio(this.files[0])" style="display:none;">
+      </label>
+    </div>
   </div>
 </div>
 
@@ -791,6 +816,97 @@ tr.stock-row:hover { cursor: pointer; }
 </div>
 
 <script>
+function exportPortfolio() {
+  const data = {
+    version: 3,
+    date: new Date().toISOString(),
+    stocks: portfolio,
+    alarms: alarms
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gema-portfolio-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showSuccess('Portefølje eksporteret!');
+}
+
+function importPortfolio(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.stocks) portfolio = data.stocks;
+      if (data.alarms) alarms = data.alarms;
+      localStorage.setItem('gemaPortfolio', JSON.stringify(portfolio));
+      localStorage.setItem('gemaAlarms', JSON.stringify(alarms));
+      renderPortfolio();
+      showSuccess('Portefølje importeret!');
+    } catch(err) {
+      showError('Kunne ikke parse fil: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ==================== LOADING OVERLAY ====================
+function showLoading() {
+  const overlay = document.createElement('div');
+  overlay.id = 'loadingOverlay';
+  overlay.className = 'loading-overlay';
+  overlay.innerHTML = '<div style="text-align:center"><div class="spinner" style="width:40px;height:40px;border-width:4px;margin-bottom:10px;"></div><div style="color:#888;">Henter priser...</div></div>';
+  document.body.appendChild(overlay);
+}
+
+function hideLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.remove();
+}
+
+// ==================== TOAST NOTIFICATIONS ====================
+function showError(message, duration = 5000) {
+  const existing = document.getElementById('errorToast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.id = 'errorToast';
+  toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#2d0d0d;border:1px solid #ff5252;color:#ff5252;padding:12px 20px;border-radius:8px;z-index:10000;font-size:0.85em;animation:slideIn 0.3s ease';
+  
+  toast.innerHTML = '<span style="margin-right:8px;">❌</span>' + message + 
+    '<button onclick="this.parentElement.remove()" style="background:none;border:none;color:#ff5252;margin-left:12px;cursor:pointer;font-size:1.2em;">×</button>';
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    if (document.getElementById('errorToast')) {
+      toast.style.animation = 'slideOut 0.3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, duration);
+}
+
+function showSuccess(message, duration = 3000) {
+  const existing = document.getElementById('successToast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.id = 'successToast';
+  toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#0d2d1a;border:1px solid #00c853;color:#00c853;padding:12px 20px;border-radius:8px;z-index:10000;font-size:0.85em;animation:slideIn 0.3s ease';
+  
+  toast.innerHTML = '<span style="margin-right:8px;">✅</span>' + message;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    if (document.getElementById('successToast')) {
+      toast.style.animation = 'slideOut 0.3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, duration);
+}
+
 // ==================== GUIDE SYSTEM ====================
 function showGuide(type) {
   const guides = {
@@ -1222,8 +1338,10 @@ async function autoRefreshCurrentStock() {
 }
 
 async function refreshAllHoldingsPrices() {
+  showLoading();
   const tickers = [...new Set(holdings.map(h => h.ticker))];
   const prices = await fetchAllPrices(tickers);
+  hideLoading();
 
   if (prices) {
     tickers.forEach(ticker => {
@@ -2323,29 +2441,53 @@ function getSourceIcon(source) {
 // ==================== INIT ====================
 // ==================== ETF MONITOR ====================
 const etfList = [
-  {symbol:'SPY',name:'S&P 500 ETF'},
-  {symbol:'QQQ',name:'Nasdaq 100 ETF'},
-  {symbol:'VTI',name:'Vanguard Total'},
-  {symbol:'GLD',name:'Gold ETF'},
-  {symbol:'TLT',name:'Treasury Bond'},
-  {symbol:'XLE',name:'Energy ETF'},
-  {symbol:'ARKK',name:'ARK Innovation'},
-  {symbol:'SXR8.DE',name:'iShares S&P 500'},
-  {symbol:'SWDA.L',name:'iShares MSCI World'},
-];
+    {symbol:'SPY',name:'S&P 500',currency:'USD'},
+    {symbol:'QQQ',name:'Nasdaq 100',currency:'USD'},
+    {symbol:'VTI',name:'Vanguard Total',currency:'USD'},
+    {symbol:'GLD',name:'Gold',currency:'USD'},
+    {symbol:'TLT',name:'Treasury Bond',currency:'USD'},
+    {symbol:'XLE',name:'Energy',currency:'USD'},
+    {symbol:'ARKK',name:'ARK Innovation',currency:'USD'},
+    {symbol:'SXR8.DE',name:'iShares S&P 500',currency:'EUR'},
+    {symbol:'SWDA.L',name:'MSCI World',currency:'GBP'},
+  ];
 
-function renderETFMonitor() {
+async function renderETFMonitor() {
+  const etfList = [
+    {symbol:'SPY',name:'S&P 500',currency:'USD'},
+    {symbol:'QQQ',name:'Nasdaq 100',currency:'USD'},
+    {symbol:'VTI',name:'Vanguard Total',currency:'USD'},
+    {symbol:'GLD',name:'Gold',currency:'USD'},
+    {symbol:'TLT',name:'Treasury Bond',currency:'USD'},
+    {symbol:'XLE',name:'Energy',currency:'USD'},
+    {symbol:'ARKK',name:'ARK Innovation',currency:'USD'},
+    {symbol:'SXR8.DE',name:'iShares S&P 500',currency:'EUR'},
+    {symbol:'SWDA.L',name:'MSCI World',currency:'GBP'},
+  ];
+  
   let koeb=0, afvent=0;
   let html='';
-  etfList.forEach(e => {
-    const price = Math.random() * 100 + 200;
-    const rsi = Math.random() * 40 + 30;
-    const signal = rsi < 30 ? 'KOEB' : rsi > 70 ? 'SELL' : 'AFVENT';
-    if(signal==='KOEB') koeb++;
-    if(signal==='AFVENT') afvent++;
-    const cls = signal==='KOEB' ? 'green' : signal==='SELL' ? 'red' : 'yellow';
-    html += '<tr><td><b>'+e.symbol+'</b><br><small style="color:#888">'+e.name+'</small></td><td>'+price.toFixed(2)+' DKK</td><td><span class="signal '+cls+'">'+signal+'</span></td><td>'+rsi.toFixed(1)+'</td><td>'+(price*0.95).toFixed(2)+'</td><td>'+(price*1.10).toFixed(2)+'</td></tr>';
-  });
+  
+  for (const e of etfList) {
+    try {
+      const price = await fetchYahooPrice(e.symbol);
+      const displayPrice = price.success ? price.price.toFixed(2) : '—';
+      const rsi = Math.floor(Math.random() * 40 + 30);
+      const signal = rsi < 30 ? 'KOEB' : rsi > 70 ? 'SELL' : 'AFVENT';
+      
+      if(signal==='KOEB') koeb++;
+      if(signal==='AFVENT') afvent++;
+      
+      const cls = signal==='KOEB' ? 'green' : signal==='SELL' ? 'red' : 'yellow';
+      const stop = price.success ? (price.price * 0.97).toFixed(2) : '—';
+      const target = price.success ? (price.price * 1.05).toFixed(2) : '—';
+      
+      html += '<tr><td><b>'+e.symbol+'</b><br><small style="color:#888">'+e.name+'</small></td><td>'+displayPrice+' '+e.currency+'</td><td><span class="signal '+cls+'">'+signal+'</span></td><td>'+rsi+'</td><td>'+stop+'</td><td>'+target+'</td></tr>';
+    } catch(err) {
+      html += '<tr><td><b>'+e.symbol+'</b><br><small style="color:#888">'+e.name+'</small></td><td>—</td><td><span class="signal yellow">AFVENT</span></td><td>—</td><td>—</td><td>—</td></tr>';
+    }
+  }
+  
   document.getElementById('etf-body').innerHTML = html;
   document.getElementById('etf-koeb').textContent = koeb;
   document.getElementById('etf-afvent').textContent = afvent;
