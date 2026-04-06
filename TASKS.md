@@ -49,12 +49,12 @@
 - **Result:** ✅ 2026-04-04 - dashboard.html oprettet med ETF tabel + benchmark oversigt
 
 ### Dashboard: Opdater med live data fra script
-- **Status:** pending
+- **Status:** completed
 - **Type:** 🟢
 - **Created:** 2026-04-04
 - **Description:** Dashboard.html bruger static sample data. Kør etf_monitor.py og opdater dashboard med faktiske værdier for alle ETF'ere (RSI, ATR%, volatilitet, stop/TP1).
-- **Next step:** cd projects/aktieprojekt && python etf_monitor.py --once > output.json (eller parse stdout) → opdater dashboard.html
-- **Result:** 
+- **Next step:** —
+- **Result:** ✅ 2026-04-06 — Opdateret ATR/vol-værdier fra etf_monitor.py (7 KØBEKLAR, 5 AFVENT). Priser uændrede (søndag, marked lukket).
 
 ### Strategi: Backtest af Trend køb setup
 - **Status:** completed

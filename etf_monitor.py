@@ -5,7 +5,7 @@ ETP/ETF Monitor for energy, defense and gold ETFs mentioned in the discussion.
 
 Features
 --------
-- Pulls daily data using yfinance
+- Pulls daily data using yfinance (bulk download - single network call for all tickers)
 - Calculates core indicators: SMA(50/200), ATR(14), RSI(14), Donchian channels (20/55)
 - Derives three actionable setups in plain Danish:
   1) "Trend køb"  (trend-following when structure is bullish)
@@ -15,6 +15,7 @@ Features
   "Nu er denne X ETF købeklar pga 'YY element'. Anbefaling: sælg på 'ZZ' måde."
 - Simple risk model: ATR-based stop, position sizing by % risk of equity
 - Optional loop to keep watching during market hours
+- Watchlist support: specify tickers via watchlist.csv (ticker column)
 
 Usage
 -----
@@ -27,11 +28,20 @@ Usage
 3) Run in loop (checks every 30 min by default while US market is open):
    python etf_monitor.py --equity 150000 --risk-pct 1.0 --sleep-minutes 30
 
+4) Custom watchlist (optional):
+   Create watchlist.csv with a "ticker" column:
+   ticker
+   XOP
+   OIH
+   GLD
+   The script auto-detects watchlist.csv in the same directory.
+
 Notes
 -----
 - Data source: Yahoo Finance via yfinance
 - Markets: US-listed ETFs
 - Timezone logic: US/Eastern market hours (09:30–16:00)
+- Download period: ~300 days (enough for SMA200 at 200 trading days)
 
 """
 
@@ -65,7 +75,18 @@ except Exception as e:
 # ----------------------------
 # Configuration
 # ----------------------------
-TICKERS = [
+
+DEFAULT_EQUITY = float(os.getenv("ACCOUNT_EQUITY", 200_000))  # DKK or USD—this is unit-agnostic
+DEFAULT_RISK_PCT = float(os.getenv("RISK_PCT", 0.75))  # percent per trade
+WATCHLIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "watchlist.csv")
+# ~300 calendar days ≈ 210 trading days; enough for SMA200 (200 days) + buffer
+DOWNLOAD_DAYS = 300
+INTERVAL = "1d"
+
+US_EAST = pytz.timezone("US/Eastern")
+
+# Fallback tickers (used if watchlist.csv is not found)
+FALLBACK_TICKERS = [
     # Energy (E&P/services/sector)
     "XOP", "OIH", "IYE", "VDE", "XLE",
     # Oil price proxies (futures-based ETFs)
@@ -76,10 +97,24 @@ TICKERS = [
     "GLD", "IAU",
 ]
 
-DEFAULT_EQUITY = float(os.getenv("ACCOUNT_EQUITY", 200_000))  # DKK or USD—this is unit-agnostic
-DEFAULT_RISK_PCT = float(os.getenv("RISK_PCT", 0.75))  # percent per trade
 
-US_EASTERN = pytz.timezone("US/Eastern")
+def load_tickers() -> list[str]:
+    """Load tickers from watchlist.csv if it exists, otherwise use FALLBACK_TICKERS."""
+    if os.path.exists(WATCHLIST_FILE):
+        try:
+            df = pd.read_csv(WATCHLIST_FILE)
+            # Support "ticker" or "Ticker" or "TICKER" column
+            col = next((c for c in df.columns if c.lower() == "ticker"), None)
+            if col:
+                tickers = df[col].dropna().str.strip().str.upper().tolist()
+                if tickers:
+                    print(f"Loaded {len(tickers)} tickers from watchlist.csv")
+                    return tickers
+            print(f"watchlist.csv found but no 'ticker' column — using default tickers")
+        except Exception as e:
+            print(f"Could not read watchlist.csv ({e}) — using default tickers")
+    return FALLBACK_TICKERS
+
 
 # ----------------------------
 # Indicator utilities
@@ -133,23 +168,58 @@ class Signal:
 # Core logic
 # ----------------------------
 
-def fetch_history(ticker: str, period: str = "2y", interval: str = "1d") -> pd.DataFrame:
-    df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=False)
-    if df.empty:
-        raise RuntimeError(f"No data for {ticker}")
-    # yfinance >= 1.0 returns multi-level columns (Price, Ticker); flatten them
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = [col[0] for col in df.columns]
-    # Use Adj Close where available, else Close
-    if "Adj Close" in df.columns:
-        df["AdjClose"] = df["Adj Close"]
-    else:
-        df["AdjClose"] = df["Close"]
-    return df
+def fetch_history_bulk(tickers: list[str], days: int = DOWNLOAD_DAYS, interval: str = INTERVAL) -> dict[str, pd.DataFrame]:
+    """
+    Download historical data for all tickers in a single network call.
+    Returns a dict mapping ticker -> DataFrame.
+    """
+    start = datetime.now() - timedelta(days=days)
+    # Bulk download: all tickers in one call
+    data = yf.download(
+        tickers=tickers,
+        start=start,
+        end=None,
+        interval=interval,
+        progress=True,
+        auto_adjust=False,
+        group_by="ticker",       # creates multi-level columns: (ticker, field)
+        threads=True,            # parallel download within yfinance
+    )
+    result = {}
+    for ticker in tickers:
+        try:
+            if isinstance(data.columns, pd.MultiIndex):
+                # Extract this ticker's columns
+                if ticker in data.columns.get_level_values(0):
+                    df = data[ticker].copy()
+                else:
+                    # Try with .YS suffix that yfinance sometimes adds
+                    alt = ticker.replace("-", ".")
+                    if alt in data.columns.get_level_values(0):
+                        df = data[alt].copy()
+                    else:
+                        raise RuntimeError(f"Ticker {ticker} not found in bulk download result")
+            else:
+                df = data.copy()
+
+            if df.empty or len(df) < 200:
+                raise RuntimeError(f"Insufficient data for {ticker} ({len(df)} rows)")
+
+            # Use Adj Close where available, else Close
+            if "Adj Close" in df.columns:
+                df["AdjClose"] = df["Adj Close"]
+            else:
+                df["AdjClose"] = df["Close"]
+
+            result[ticker] = df
+        except Exception as e:
+            # Log and skip this ticker; caller handles missing entries
+            print(f"  [WARN] Skipping {ticker}: {e}")
+    return result
 
 
-def analyze_ticker(ticker: str, equity: float, risk_pct: float) -> Signal:
-    df = fetch_history(ticker)
+def analyze_ticker_from_df(ticker: str, df: pd.DataFrame, equity: float, risk_pct: float) -> Signal:
+    """Analyze a single ticker given its pre-downloaded DataFrame."""
 
     # Indicators
     df["SMA50"] = df["AdjClose"].rolling(50).mean()
@@ -260,7 +330,7 @@ def analyze_ticker(ticker: str, equity: float, risk_pct: float) -> Signal:
 
 def market_open_now() -> bool:
     """Return True if US market is open now (simple approximation)."""
-    now_et = datetime.now(US_EASTERN)
+    now_et = datetime.now(US_EAST)
     if now_et.weekday() >= 5:  # Saturday/Sunday
         return False
     open_t = now_et.replace(hour=9, minute=30, second=0, microsecond=0)
@@ -269,16 +339,36 @@ def market_open_now() -> bool:
 
 
 def run_scan(equity: float, risk_pct: float) -> pd.DataFrame:
+    tickers = load_tickers()
+    print(f"Downloading data for {len(tickers)} tickers (bulk download, {DOWNLOAD_DAYS} days)...")
+
+    # Single bulk download for all tickers
+    all_data = fetch_history_bulk(tickers)
+
     signals = []
-    for t in TICKERS:
-        try:
-            sig = analyze_ticker(t, equity=equity, risk_pct=risk_pct)
-            signals.append(sig)
-        except Exception as e:
+    for t in tickers:
+        if t in all_data:
+            try:
+                sig = analyze_ticker_from_df(t, all_data[t], equity=equity, risk_pct=risk_pct)
+                signals.append(sig)
+            except Exception as e:
+                signals.append(Signal(
+                    ticker=t,
+                    status="FEJL",
+                    reason=f"Analysis error: {e}",
+                    close=float('nan'),
+                    atr=0.0,
+                    stop=float('nan'),
+                    take_profit_1=float('nan'),
+                    take_profit_2=float('nan'),
+                    position_size=0.0,
+                    risk_text=""
+                ))
+        else:
             signals.append(Signal(
                 ticker=t,
                 status="FEJL",
-                reason=f"Datafejl: {e}",
+                reason="No data (download failed or insufficient history)",
                 close=float('nan'),
                 atr=0.0,
                 stop=float('nan'),
@@ -287,6 +377,7 @@ def run_scan(equity: float, risk_pct: float) -> pd.DataFrame:
                 position_size=0.0,
                 risk_text=""
             ))
+
     # Convert to DataFrame
     rows = []
     for s in signals:
@@ -326,7 +417,6 @@ def pretty_print(df: pd.DataFrame):
 
 
 def write_log(df: pd.DataFrame):
-    from datetime import timezone
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     out = df.copy()
     out.insert(0, "Timestamp_UTC", ts)
@@ -360,7 +450,7 @@ def main():
                 pretty_print(df)
                 write_log(df)
             else:
-                now_et = datetime.now(US_EASTERN).strftime("%Y-%m-%d %H:%M:%S %Z")
+                now_et = datetime.now(US_EAST).strftime("%Y-%m-%d %H:%M:%S %Z")
                 print(f"Markedet er lukket ({now_et}). Venter...")
             time.sleep(max(60, args.sleep_minutes * 60))
         except KeyboardInterrupt:

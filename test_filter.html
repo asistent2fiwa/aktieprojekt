@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+<script>
+window.filterStocks = function filterStocks(query) {
+  return 'filterStocks called with: ' + query;
+}
+</script>
+<h1>Test</h1>
+<p id="result">Click button</p>
+<button onclick="document.getElementById('result').textContent = filterStocks('hello')">Test</button>
+<button onclick="document.getElementById('result').textContent = typeof filterStocks">Check type</button>
+</body>
+</html>

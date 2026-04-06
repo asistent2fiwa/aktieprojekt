@@ -2,7 +2,22 @@
 
 ## PROJEKT LOG
 
-### 2026-03-31 19:05 — Projekt oprettet
+### 2026-04-06 15:43 — FIWA: GÅ AMOK MODE
+**Action:** FiWa gav grønt lys til at arbejde aggressivt på opgaver
+**Reason:** FiWa sagde "jatak gå amok med opgaverne"
+**Result:** Sætter 3+ sub-agenter i gang
+**Next:** 
+1. Fix filterStocks i v3 (IIFE problem)
+2. Bulk download + period optimization i etf_monitor.py
+3. Watchlist.csv feature
+
+*Lokal tid: 15:43*
+**Action:** Kørte etf_monitor.py --once, opdaterede dashboard.html med friske ATR/vol værdier fra 6/4. 7 KØBEKLAR, 5 AFVENT. Priser uændrede (søndag, marked lukket). ATR opdateret for alle 12 tickers.
+**Reason:** 🟢 task "Dashboard: Opdater med live data" var top of pending list
+**Result:** ✅ dashboard.html — ATR + vol klassificering opdateret
+**Next:** Signal-alert via Discord eller Portefølje-tracker
+
+*Lokal tid: 07:03*
 **Action:** HB oprettede projektstruktur autonomt
 **Channel:** #aktieprojekt (Discord)
 **Folder:** projects/aktieprojekt/

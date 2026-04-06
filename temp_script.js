@@ -1,0 +1,2002 @@
+
+function exportPortfolio() {
+  const data = {
+    version: 3,
+    date: new Date().toISOString(),
+    stocks: portfolio,
+    alarms: alarms
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gema-portfolio-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showSuccess('Portefølje eksporteret!');
+}
+
+function importPortfolio(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.stocks) portfolio = data.stocks;
+      if (data.alarms) alarms = data.alarms;
+      localStorage.setItem('gemaPortfolio', JSON.stringify(portfolio));
+      localStorage.setItem('gemaAlarms', JSON.stringify(alarms));
+      renderPortfolio();
+      showSuccess('Portefølje importeret!');
+    } catch(err) {
+      showError('Kunne ikke parse fil: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ==================== LOADING OVERLAY ====================
+function showLoading() {
+  const overlay = document.createElement('div');
+  overlay.id = 'loadingOverlay';
+  overlay.className = 'loading-overlay';
+  overlay.innerHTML = '<div style="text-align:center"><div class="spinner" style="width:40px;height:40px;border-width:4px;margin-bottom:10px;"></div><div style="color:#888;">Henter priser...</div></div>';
+  document.body.appendChild(overlay);
+}
+
+function hideLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.remove();
+}
+
+// ==================== TOAST NOTIFICATIONS ====================
+function showError(message, duration = 5000) {
+  const existing = document.getElementById('errorToast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.id = 'errorToast';
+  toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#2d0d0d;border:1px solid #ff5252;color:#ff5252;padding:12px 20px;border-radius:8px;z-index:10000;font-size:0.85em;animation:slideIn 0.3s ease';
+  
+  toast.innerHTML = '<span style="margin-right:8px;">❌</span>' + message + 
+    '<button onclick="this.parentElement.remove()" style="background:none;border:none;color:#ff5252;margin-left:12px;cursor:pointer;font-size:1.2em;">×</button>';
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    if (document.getElementById('errorToast')) {
+      toast.style.animation = 'slideOut 0.3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, duration);
+}
+
+function showSuccess(message, duration = 3000) {
+  const existing = document.getElementById('successToast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.id = 'successToast';
+  toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#0d2d1a;border:1px solid #00c853;color:#00c853;padding:12px 20px;border-radius:8px;z-index:10000;font-size:0.85em;animation:slideIn 0.3s ease';
+  
+  toast.innerHTML = '<span style="margin-right:8px;">✅</span>' + message;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    if (document.getElementById('successToast')) {
+      toast.style.animation = 'slideOut 0.3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, duration);
+}
+
+// ==================== GUIDE SYSTEM ====================
+function showGuide(type) {
+  const guides = {
+    'stop-loss': {
+      title: 'Stop-loss Guide',
+      content: `<h3>Sådan opsætter du Stop-loss i Nordnet:</h3>
+<ol>
+<li>Gå til "Mine Handler" → "Køb"</li>
+<li>Vælg aktien og antal</li>
+<li>Vælg "Stop-loss" som ordretype</li>
+<li>Sæt din stop-kurs (f.eks. 5% under købspris)</li>
+<li>Bekræft ordren</li>
+</ol>
+<br>
+<a href="https://www.nordnet.dk/magasinet/artikler/stop-loss" target="_blank">📖 Nordnet guide</a>`
+    },
+    'kelly': {
+      title: 'Kelly Criterion Guide',
+      content: `<h3>Kelly Criterion for position sizing:</h3>
+<p>Kelly % = Win-rate × (Gevinst/Tab) - Tab/(Gevinst/Tab)</p>
+<p>Brug 10-15% Kelly max for sikker trading.</p>`
+    },
+    'rsi': {
+      title: 'RSI Guide',
+      content: `<h3>Relative Strength Index:</h3>
+<ul>
+<li>RSI > 70 = Overkøbt (mulig korrektion)</li>
+<li>RSI < 30 = Oversolgt (mulig optur)</li>
+<li>RSI = 50 = Neutral</li>
+</ul>`
+    }
+  };
+  const guide = guides[type];
+  if (!guide) return;
+  // Vis i modal
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `<div style="background:#1e1e2e;border:1px solid var(--cyan);border-radius:12px;padding:24px;max-width:400px;width:90%;color:#e0e0e0;font-family:Segoe UI,Arial,sans-serif;">
+    <h2 style="color:var(--cyan);margin-bottom:14px;">${guide.title}</h2>
+    <div style="line-height:1.6;font-size:0.9em;color:#ccc;max-height:60vh;overflow-y:auto;">${guide.content}</div>
+    <button onclick="this.closest('[style*=&quot;position:fixed&quot;]').remove()" style="margin-top:16px;width:100%;padding:8px;background:var(--cyan);border:none;border-radius:6px;color:#000;font-weight:bold;cursor:pointer;">Luk</button>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+// ==================== SESSION BESKYTTELSE ====================
+// ** MIDLERTIDIGT DEAKTIVERET - Fjern kommentarerne for at aktivere login **
+
+const portfolioPrefs = {
+  dkOnly: false,
+  etfPreferred: false,
+  riskLevel: 'medium'
+};
+function checkSession() {
+  // const session = localStorage.getItem('userSession');
+  // if (!session) {
+  //   window.location.href = 'login.html';
+  //   return false;
+  // }
+  // const user = JSON.parse(session);
+  // const userInfo = document.getElementById('userInfo');
+  // if (userInfo) {
+  //   userInfo.textContent = '👤 ' + (user.name || user.email);
+  //   userInfo.style.display = 'block';
+  // }
+  return true;
+}
+
+function logout() {
+  localStorage.removeItem('userSession');
+  window.location.href = 'login.html';
+}
+
+// Tjek session ved indlæsning
+if (!checkSession()) {
+  // Stopper her - redirect er i gang
+}
+
+// ==================== DATA ====================
+// Aktie database med danske og amerikanske aktier
+const stocks = {
+  // Amerikanske (USD)
+  NVDA:  { name:'Nvidia', price:820, change:2.1, sector:'AI/Chip', rsi:28, atr:22, sma20:850, sma50:830, sma200:800, macd:5.2, currency:'USD' },
+  TSLA:  { name:'Tesla', price:245, change:1.5, sector:'EV', rsi:61, atr:8, sma20:240, sma50:235, sma200:250, macd:2.1, currency:'USD' },
+  AAPL:  { name:'Apple', price:182, change:-0.8, sector:'Tech', rsi:45, atr:3.8, sma20:185, sma50:180, sma200:175, macd:0.5, currency:'USD' },
+  MSFT:  { name:'Microsoft', price:410, change:0.5, sector:'Tech', rsi:52, atr:5, sma20:408, sma50:400, sma200:380, macd:1.5, currency:'USD' },
+  AMZN:  { name:'Amazon', price:195, change:-0.3, sector:'E-commerce', rsi:48, atr:4, sma20:193, sma50:190, sma200:185, macd:0.8, currency:'USD' },
+  // Nordiske (DKK)
+  NOVO:  { name:'Novo Nordisk', price:895, change:1.2, sector:'Pharma', rsi:55, atr:15, sma20:890, sma50:880, sma200:850, macd:3.2, currency:'DKK' },
+  VWS:   { name:'Vestas', price:145, change:-0.8, sector:'Energy', rsi:42, atr:3, sma20:148, sma50:150, sma200:155, macd:-1.5, currency:'DKK' },
+  DSV:   { name:'DSV', price:1250, change:0.7, sector:'Transport', rsi:58, atr:18, sma20:1245, sma50:1230, sma200:1200, macd:5.0, currency:'DKK' },
+  MAERSK:{ name:'Maersk', price:9800, change:-1.5, sector:'Shipping', rsi:38, atr:150, sma20:9950, sma50:10000, sma200:10200, macd:-80, currency:'DKK' },
+  COLO:  { name:'Coloplast', price:835, change:0.3, sector:'Medico', rsi:50, atr:10, sma20:832, sma50:825, sma200:810, macd:2.0, currency:'DKK' },
+  // ETF'er
+  XOP:   { name:'OPEC ETF', price:168, change:-1.2, sector:'Energy', rsi:38, atr:4.2, sma20:172, sma50:169, sma200:165, macd:-1.2, currency:'USD' },
+  SPY:   { name:'S&P 500', price:510, change:0.3, sector:'Index', rsi:55, atr:4, sma20:508, sma50:505, sma200:490, macd:1.2, currency:'USD' }
+};
+
+// Standard valutakurser (DKK)
+const fxRates = {
+  USD: 6.9,
+  EUR: 7.45,
+  SEK: 0.62,
+  NOK: 0.68,
+  GBP: 8.5,
+  DKK: 1.0
+};
+
+// Portfolie beholdninger
+let holdings = [
+  { ticker:'XOP', qty:10, buyPrice:170 },
+  { ticker:'AAPL', qty:5, buyPrice:190 },
+  { ticker:'NVDA', qty:2, buyPrice:750 }
+];
+
+// Alarmer
+let alarms = [
+  { ticker:'XOP', type:'warn', pct:8, period:'30 dage', msg:'Nærmer sig peak - overvej at tage gevinst' },
+  { ticker:'AAPL', type:'danger', pct:-4, period:'idag', msg:'Stop-loss niveau nærmer sig' },
+  { ticker:'NVDA', type:'info', pct:0, period:'RSI < 30', msg:'Oversolgt - potentiel opgang' }
+];
+
+// Alarm parametre
+let alarmParams = {
+  rsiOverbought: 70,
+  rsiOversold: 30,
+  pctChangeAlarm: 5,
+  autoAlarmHoldings: true
+};
+
+// ==================== LIVE VALUTAKURSER FRA YAHOO FINANCE ====================
+async function fetchExchangeRate(fromCurrency, toCurrency = 'DKK') {
+  if (fromCurrency === toCurrency) return 1;
+  try {
+    const pair = `${fromCurrency}${toCurrency}=X`;
+    const proxyUrl = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${pair}?interval=1d&range=1d`;
+    const response = await fetch(proxyUrl);
+    const data = await response.json();
+    if (data.chart && data.chart.result && data.chart.result[0]) {
+      return data.chart.result[0].meta.regularMarketPrice;
+    }
+  } catch (error) {
+    console.error('Exchange rate error:', error);
+    return null;
+  }
+}
+
+async function updateCurrencyRates() {
+  const usdRate = await fetchExchangeRate('USD', 'DKK');
+  const eurRate = await fetchExchangeRate('EUR', 'DKK');
+  const gbpRate = await fetchExchangeRate('GBP', 'DKK');
+  if (usdRate) {
+    document.getElementById('usdRate').textContent = usdRate.toFixed(4);
+    localStorage.setItem('usdRate', usdRate);
+  }
+  if (eurRate) {
+    document.getElementById('eurRate').textContent = eurRate.toFixed(4);
+    localStorage.setItem('eurRate', eurRate);
+  }
+  if (gbpRate) {
+    document.getElementById('gbpRate').textContent = gbpRate.toFixed(4);
+    localStorage.setItem('gbpRate', gbpRate);
+  }
+  localStorage.setItem('currencyRatesUpdated', new Date().toISOString());
+}
+
+// Kald ved opstart
+updateCurrencyRates();
+
+// ==================== YAHOO FINANCE BATCH API ====================
+const priceCache = {
+  data: {},
+  timestamp: null
+};
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutter
+
+async function fetchAllPrices(symbols) {
+  // Tjek cache først
+  if (priceCache.timestamp &&
+      (Date.now() - priceCache.timestamp) < CACHE_DURATION &&
+      symbols.every(s => priceCache.data[s])) {
+    console.log('[Batch] Brugte cache');
+    return priceCache.data;
+  }
+
+  // Brug Yahoo Finance batch API
+  const symbolsParam = symbols.join(',');
+  const proxyUrl = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbolsParam}?interval=1d&range=1d`;
+  console.log('[Batch] Henter priser for:', symbols, 'URL:', proxyUrl);
+
+  try {
+    // Timeout på 10 sekunder
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(proxyUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    console.log('[Batch] Response status:', response.status);
+    const data = await response.json();
+    console.log('[Batch] Data OK:', !!data.chart);
+
+    // Parse alle symboler
+    const results = {};
+    if (data.chart && data.chart.result) {
+      for (const result of data.chart.result) {
+        const symbol = result.meta.symbol;
+        const meta = result.meta;
+        // Hent OHLCV candle data fra sidste handelsdag
+        let open = null, high = null, low = null, volume = null;
+        if (result.timestamp && result.timestamp.length > 0) {
+          const lastIdx = result.timestamp.length - 1;
+          const quote = result.indicators && result.indicators.quote && result.indicators.quote[0];
+          if (quote) {
+            open = quote.open && quote.open[lastIdx];
+            high = quote.high && quote.high[lastIdx];
+            low = quote.low && quote.low[lastIdx];
+            volume = quote.volume && quote.volume[lastIdx];
+          }
+        }
+        results[symbol] = {
+          price: meta.regularMarketPrice,
+          prevClose: meta.previousClose,
+          currency: meta.currency || 'USD',
+          marketState: meta.marketState || 'CLOSED',
+          timestamp: meta.regularMarketTime,
+          open: open,
+          high: high,
+          low: low,
+          volume: volume,
+          success: true
+        };
+      }
+    }
+
+    // Gem i cache
+    priceCache.data = results;
+    priceCache.timestamp = Date.now();
+    console.log('[Batch] Cached', Object.keys(results).length, 'priser');
+
+    return results;
+  } catch (error) {
+    console.error('[Batch] Fetch error:', error);
+    if (error.name === 'AbortError') {
+      console.warn('[Batch] Timeout - returnerer null');
+    }
+    return null;
+  }
+}
+
+// ==================== WEEKEND & UTILITY ====================
+function isWeekend() {
+  const day = new Date().getDay();
+  return day === 0 || day === 6; // Sunday or Saturday
+}
+
+function getLastTradingDay() {
+  const now = new Date();
+  const day = now.getDay();
+  if (day === 0) now.setDate(now.getDate() - 2); // Sunday → Friday
+  if (day === 6) now.setDate(now.getDate() - 1); // Saturday → Friday
+  return now.toLocaleDateString('da-DK');
+}
+
+// ==================== YAHOO FINANCE API (SINGLE - fallback) ====================
+async function fetchYahooPrice(symbol) {
+  console.log('[Yahoo] Henter pris for:', symbol);
+  try {
+    const proxyUrl = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
+    console.log('[Yahoo] Proxy URL:', proxyUrl);
+
+    // Timeout på 10 sekunder
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(proxyUrl, { signal: controller.signal });
+    console.log('[Yahoo] Response status:', response.status);
+    clearTimeout(timeoutId);
+
+    const data = await response.json();
+    console.log('[Yahoo] Data mottatt:', JSON.stringify(data).substring(0, 300));
+
+    if (data.chart && data.chart.result && data.chart.result[0]) {
+      const meta = data.chart.result[0].meta;
+      const result = data.chart.result[0];
+      // Hent OHLCV candle data fra sidste handelsdag
+      let open = null, high = null, low = null, volume = null;
+      if (result.timestamp && result.timestamp.length > 0) {
+        const lastIdx = result.timestamp.length - 1;
+        const quote = result.indicators && result.indicators.quote && result.indicators.quote[0];
+        if (quote) {
+          open = quote.open && quote.open[lastIdx];
+          high = quote.high && quote.high[lastIdx];
+          low = quote.low && quote.low[lastIdx];
+          volume = quote.volume && quote.volume[lastIdx];
+        }
+      }
+      console.log('[Yahoo] Success:', meta.regularMarketPrice, meta.currency, meta.marketState);
+      return {
+        price: meta.regularMarketPrice,
+        prevClose: meta.previousClose,
+        currency: meta.currency || 'USD',
+        marketState: meta.marketState || 'CLOSED',
+        timestamp: meta.regularMarketTime,
+        open: open,
+        high: high,
+        low: low,
+        volume: volume,
+        success: true
+      };
+    }
+    console.warn('[Yahoo] Ingen result i response');
+    return { success: false, error: 'Ingen data i response' };
+  } catch (error) {
+    console.error('[Yahoo] Fetch error:', error);
+    if (error.name === 'AbortError') {
+      console.warn('[Yahoo] Timeout - prøver fallback');
+    }
+    // Fallback: prøv allorigins
+    try {
+      const fallbackUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`)}`;
+      console.log('[Yahoo] Prøver fallback URL:', fallbackUrl);
+      const resp = await fetch(fallbackUrl);
+      const data = await resp.json();
+      console.log('[Yahoo] Fallback response OK:', !!data.chart);
+      if (data.chart && data.chart.result && data.chart.result[0]) {
+        const meta = data.chart.result[0].meta;
+        return {
+          price: meta.regularMarketPrice,
+          prevClose: meta.previousClose,
+          currency: meta.currency || 'USD',
+          marketState: meta.marketState || 'CLOSED',
+          success: true
+        };
+      }
+    } catch (e2) { console.error('[Yahoo] Fallback also failed:', e2); }
+    return { success: false, error: error.message };
+  }
+}
+
+async function fetchAlphaVantage(symbol, apiKey) {
+  try {
+    const response = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`);
+    const data = await response.json();
+    if (data['Global Quote'] && data['Global Quote']['05. price']) {
+      return { price: parseFloat(data['Global Quote']['05. price']), success: true, currency: 'USD' };
+    }
+  } catch (error) {
+    console.error('Alpha Vantage error:', error);
+  }
+  return { price: null, success: false };
+}
+
+async function getStockPrice(symbol) {
+  // Prøv Yahoo Finance med full metadata
+  let result = await fetchYahooPrice(symbol);
+  if (result.success) return result;
+  // Fallback til Alpha Vantage
+  const apiKey = localStorage.getItem('ALPHA_VANTAGE_KEY');
+  if (apiKey) {
+    result = await fetchAlphaVantage(symbol, apiKey);
+    if (result.success) return result;
+  }
+  return { price: null, success: false, fallback: true };
+}
+
+// ==================== NYHEDER FRA YAHOO FINANCE ====================
+async function fetchStockNews(symbol) {
+  try {
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://query2.finance.yahoo.com/v1/finance/search?q=${symbol}&newsType=standard`)}`;
+    const response = await fetch(proxyUrl);
+    const data = await response.json();
+    if (data.news && data.news.length > 0) {
+      return data.news.slice(0, 3).map(item => ({
+        title: item.title,
+        link: item.link,
+        source: item.source,
+        time: item.providerPublishTime
+      }));
+    }
+  } catch (error) {
+    // Fallback: prøv allorigins
+    try {
+      const fallbackUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query2.finance.yahoo.com/v1/finance/search?q=${symbol}&newsType=standard`)}`;
+      const resp = await fetch(fallbackUrl);
+      const data = await resp.json();
+      if (data.news && data.news.length > 0) {
+        return data.news.slice(0, 3).map(item => ({
+          title: item.title,
+          link: item.link,
+          source: item.source,
+          time: item.providerPublishTime
+        }));
+      }
+    } catch (e2) { console.error('News fallback also failed:', e2); }
+    return [];
+  }
+  return [];
+}
+
+// ==================== AUTO-UPDATER ====================
+let autoUpdateInterval = null;
+const AUTO_UPDATE_MS = 5 * 60 * 1000; // 5 minutter
+
+function startAutoUpdater() {
+  if (autoUpdateInterval) clearInterval(autoUpdateInterval);
+  autoUpdateInterval = setInterval(() => {
+    autoRefreshCurrentStock();
+  }, AUTO_UPDATE_MS);
+}
+
+function stopAutoUpdater() {
+  if (autoUpdateInterval) {
+    clearInterval(autoUpdateInterval);
+    autoUpdateInterval = null;
+  }
+}
+
+async function autoRefreshCurrentStock() {
+  const ticker = document.getElementById('stockSelect').value;
+  // Opdater beholdninger først (batch)
+  await refreshAllHoldingsPrices();
+  if (ticker) {
+    await fetchAndUpdatePrice(ticker);
+    await loadStockNews(ticker);
+  }
+  calcTotal();
+  updateTimestamp();
+}
+
+async function refreshAllHoldingsPrices() {
+  showLoading();
+  const tickers = [...new Set(holdings.map(h => h.ticker))];
+  const prices = await fetchAllPrices(tickers);
+  hideLoading();
+
+  if (prices) {
+    tickers.forEach(ticker => {
+      if (prices[ticker] && prices[ticker].success) {
+        if (stocks[ticker]) {
+          stocks[ticker].price = prices[ticker].price;
+          stocks[ticker].currency = prices[ticker].currency;
+          if (prices[ticker].prevClose) {
+            stocks[ticker].change = parseFloat(((prices[ticker].price - prices[ticker].prevClose) / prices[ticker].prevClose * 100).toFixed(2));
+          }
+        }
+      }
+    });
+  }
+}
+
+function manualRefreshAll() {
+  const btn = document.getElementById('refreshAllBtn');
+  if (btn) {
+    btn.textContent = '⏳ Opdaterer...';
+    btn.disabled = true;
+  }
+  const ticker = document.getElementById('stockSelect').value;
+  (async () => {
+    // Opdater beholdninger batch først
+    await refreshAllHoldingsPrices();
+    if (ticker) {
+      await fetchAndUpdatePrice(ticker);
+      await loadStockNews(ticker);
+    }
+    renderHoldings();
+    calcTotal();
+    updateTimestamp();
+    if (btn) {
+      btn.textContent = '🔄 Opdater nu';
+      btn.disabled = false;
+    }
+  })();
+}
+
+function refreshPrice() {
+  const ticker = document.getElementById('stockSelect').value;
+  if (!ticker) return;
+  fetchAndUpdatePrice(ticker);
+}
+
+// Price cache for offline fallback
+let priceCacheMap = {};
+
+async function fetchAndUpdatePrice(ticker) {
+  const statusEl = document.getElementById('priceStatus');
+  const priceEl = document.getElementById('stockPrice');
+  statusEl.textContent = '⏳ Henter pris via Yahoo Finance...';
+  statusEl.style.color = '#888';
+  priceEl.style.borderColor = 'var(--yellow)';
+
+  const result = await getStockPrice(ticker);
+
+  // Cache den hentede pris uanset hvad
+  const currentCached = priceCacheMap[ticker];
+
+  if (result.success && result.price) {
+    // Gem i cache
+    priceCacheMap[ticker] = {
+      price: result.price,
+      prevClose: result.prevClose,
+      currency: result.currency,
+      marketState: result.marketState,
+      timestamp: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'}),
+      open: result.open,
+      high: result.high,
+      low: result.low,
+      volume: result.volume
+    };
+
+    const fxRate = parseFloat(document.getElementById('fxRate').value) || fxRates[result.currency] || 1;
+    const priceInDKK = result.price * fxRate;
+    priceEl.value = priceInDKK.toFixed(2);
+
+    // Opdater også hardcoded data
+    if (stocks[ticker]) {
+      stocks[ticker].price = result.price;
+      stocks[ticker].currency = result.currency;
+      if (result.prevClose) {
+        const pctChange = ((result.price - result.prevClose) / result.prevClose * 100);
+        stocks[ticker].change = parseFloat(pctChange.toFixed(2));
+        stocks[ticker].prevClose = result.prevClose;
+      }
+    }
+
+    const fxRateForUI = fxRate;
+
+    // === WEEKEND / CLOSED MARKET VISNING ===
+    const weekend = isWeekend();
+    const marketClosed = result.marketState === 'CLOSED' || result.marketState === 'PRE' || result.marketState === 'POST';
+
+    if (weekend || marketClosed) {
+      const lastDay = getLastTradingDay();
+      if (result.prevClose) {
+        const prevEl = document.getElementById('dailyPrevClose');
+        if (prevEl) prevEl.textContent = (result.prevClose * fxRateForUI).toFixed(2);
+        statusEl.innerHTML = `🔒 <b>MARKED LUKKET</b> — Sidste lukket: <b>${lastDay}</b> — <b>${result.prevClose.toFixed(2)} ${result.currency}</b> (${(result.prevClose * fxRateForUI).toFixed(2)} DKK)`;
+        statusEl.style.color = 'var(--yellow)';
+        priceEl.style.borderColor = 'var(--border)';
+      } else {
+        statusEl.innerHTML = `🔒 <b>MARKED LUKKET</b> — Sidste lukket: <b>${lastDay}</b>`;
+        statusEl.style.color = 'var(--yellow)';
+      }
+    } else {
+      // Live markedsdata
+      if (result.prevClose) {
+        const pctChange = ((result.price - result.prevClose) / result.prevClose * 100).toFixed(2);
+        const changeEl = document.getElementById('dailyChangeBox');
+        if (changeEl) {
+          const sign = pctChange >= 0 ? '+' : '';
+          const changeInDKK = ((result.price - result.prevClose) * fxRateForUI).toFixed(0);
+          changeEl.innerHTML = `${sign}${pctChange}%<br><span style="font-size:0.75em;color:#aaa">${changeInDKK >= 0 ? '+' : ''}${parseInt(changeInDKK).toLocaleString('da-DK')} DKK</span>`;
+          changeEl.className = 'val ' + (pctChange >= 0 ? 'pos' : 'neg');
+        }
+      }
+      if (result.prevClose) {
+        const prevEl = document.getElementById('dailyPrevClose');
+        if (prevEl) prevEl.textContent = (result.prevClose * fxRateForUI).toFixed(2);
+      }
+      if (result.open) {
+        const openEl = document.getElementById('dailyOpen');
+        if (openEl) openEl.textContent = (result.open * fxRateForUI).toFixed(2);
+      }
+      if (result.high) {
+        const highEl = document.getElementById('dailyHigh');
+        if (highEl) highEl.textContent = (result.high * fxRateForUI).toFixed(2);
+      }
+      if (result.low) {
+        const lowEl = document.getElementById('dailyLow');
+        if (lowEl) lowEl.textContent = (result.low * fxRateForUI).toFixed(2);
+      }
+      if (result.volume) {
+        const volEl = document.getElementById('dailyVolume');
+        if (volEl) {
+          const volStr = result.volume >= 1e6
+            ? (result.volume / 1e6).toFixed(1) + 'M'
+            : result.volume >= 1e3
+              ? (result.volume / 1e3).toFixed(0) + 'K'
+              : result.volume.toLocaleString('da-DK');
+          volEl.textContent = volStr;
+        }
+      }
+
+      const flag = result.currency === 'USD' ? '💵' : result.currency === 'DKK' ? '🇩🇰' : '💱';
+      statusEl.textContent = `${flag} Live: ${result.price.toFixed(2)} ${result.currency} → ${priceInDKK.toFixed(2)} DKK`;
+      statusEl.style.color = 'var(--green)';
+      priceEl.style.borderColor = 'var(--border)';
+    }
+
+    calcRec();
+  } else {
+    // Fetch fejlede – vis cached data hvis tilgængelig
+    if (currentCached) {
+      const fxRate = parseFloat(document.getElementById('fxRate').value) || fxRates[currentCached.currency] || 1;
+      const cachedPriceDKK = currentCached.price * fxRate;
+      priceEl.value = cachedPriceDKK.toFixed(2);
+      statusEl.innerHTML = `<span style="color:var(--orange)">⚠️ Kunne ikke hente live pris — Vist cached data fra kl. ${currentCached.timestamp}</span>`;
+      statusEl.style.color = 'var(--orange)';
+      priceEl.style.borderColor = 'var(--orange)';
+
+      // Opdater OHLCV fra cache
+      const fxRateForUI = fxRate;
+      if (currentCached.prevClose) {
+        const prevEl = document.getElementById('dailyPrevClose');
+        if (prevEl) prevEl.textContent = (currentCached.prevClose * fxRateForUI).toFixed(2);
+      }
+      if (currentCached.open) {
+        const openEl = document.getElementById('dailyOpen');
+        if (openEl) openEl.textContent = (currentCached.open * fxRateForUI).toFixed(2);
+      }
+      if (currentCached.high) {
+        const highEl = document.getElementById('dailyHigh');
+        if (highEl) highEl.textContent = (currentCached.high * fxRateForUI).toFixed(2);
+      }
+      if (currentCached.low) {
+        const lowEl = document.getElementById('dailyLow');
+        if (lowEl) lowEl.textContent = (currentCached.low * fxRateForUI).toFixed(2);
+      }
+
+      // Opdater også hardcoded data fra cache
+      if (stocks[ticker]) {
+        stocks[ticker].price = currentCached.price;
+        stocks[ticker].currency = currentCached.currency;
+      }
+    } else {
+      statusEl.innerHTML = `<span style="color:var(--red)">❌ Kunne ikke hente pris. Tjek internetforbindelsen og prøv igen.</span>`;
+      statusEl.style.color = 'var(--red)';
+      priceEl.style.borderColor = 'var(--red)';
+    }
+  }
+}
+
+// ==================== GEBYRBEREGNING (Nordnet Standard) ====================
+// Nordnet Standard: 0.15% af handelsværdi, min 25 DKK, maks 299 DKK
+// Køb udenfor Nordnet: yderligere 0.11%
+function calcFee(tradeValue, outsideNordnet = false) {
+  // Nordnet basis gebyr
+  let fee = tradeValue * 0.0015; // 0.15%
+  
+  // Min/max
+  fee = Math.max(25, Math.min(299, fee));
+  
+  // Ekstra gebyr hvis købt udenfor Nordnet (f.eks. WBK, Danske Bank)
+  if (outsideNordnet) {
+    fee += tradeValue * 0.0011; // Yderligere 0.11%
+  }
+  
+  return Math.round(fee * 100) / 100; // Runde til 2 decimaler
+}
+
+// Beregn totalpris inkl. gebyr og valutaomregning
+function calcTotalCost(qty, pricePerShare, currency, fxRate, outsideNordnet = false) {
+  // Omregn til DKK hvis nødvendigt
+  const priceInDKK = pricePerShare * (fxRates[currency] || 1);
+  const tradeValue = qty * priceInDKK;
+  
+  // Beregn gebyr
+  const fee = calcFee(tradeValue, outsideNordnet);
+  
+  // Total
+  const total = tradeValue + fee;
+  
+  return {
+    tradeValue: Math.round(tradeValue * 100) / 100,
+    fee: fee,
+    total: Math.round(total * 100) / 100,
+    priceInDKK: Math.round(priceInDKK * 100) / 100
+  };
+}
+
+// ==================== POSITION SIZING (Dynamisk) ====================
+// Baseret på beholdning størrelse
+function calcPositionSize(cash, kelly, currency, fxRate) {
+  const maxPos = cash * (kelly / 100);
+  
+  // Check for minimum viable position
+  // Minimum = gebyr + 1 aktie skal give mening økonomisk
+  const samplePrice = 100 * (fxRates[currency] || 1); // Antager minimum 100 DKK per aktie
+  const minCost = calcTotalCost(1, samplePrice, currency, fxRate);
+  const minViable = minCost.total;
+  
+  // Anbefalinger baseret på beholdning
+  let recommendation = '';
+  let maxStocks = 5;
+  
+  if (cash < 2000) {
+    // Under 2000 kr: ETF anbefaling istedet for enkeltaktier
+    recommendation = '⚠️ Under 2.000 DKK: Overvej ETF/sparrow i stedet for enkeltaktier (gebyrer spiser for meget)';
+    maxStocks = 0; // Ingen aktier anbefales
+  } else if (cash < 5000) {
+    // Under 5000 kr: max 1-2 aktier pga gebyrer
+    recommendation = '💡 Under 5.000 DKK: Maks 1-2 aktier pga gebyrer';
+    maxStocks = 2;
+  } else if (cash < 10000) {
+    maxStocks = 3;
+  }
+  
+  // Kelly optimal ( reduceret for sikkerhed )
+  const kellyOpt = Math.min(kelly * 0.8, 8);
+  const kellyPos = cash * (kellyOpt / 100);
+  
+  return {
+    maxPos: Math.round(maxPos),
+    kellyOpt: kellyOpt,
+    kellyPos: Math.round(kellyPos),
+    minViable: Math.round(minViable),
+    recommendation: recommendation,
+    maxStocks: maxStocks,
+    viable: maxPos >= minViable
+  };
+}
+
+// ==================== DAGLIG GEAVINST (FIX: opdateres ALTID) ====================
+function updateDayChange() {
+  let dayChange = 0;
+  holdings.forEach(h => {
+    const s = stocks[h.ticker];
+    if (s) {
+      // Konverter til DKK hvis nødvendigt
+      const priceInDKK = s.price * (fxRates[s.currency] || 1);
+      dayChange += h.qty * priceInDKK * (s.change / 100);
+    }
+  });
+  
+  const dc = document.getElementById('dayChange');
+  dc.textContent = (dayChange >= 0 ? '+' : '') + dayChange.toLocaleString('da-DK', {minimumFractionDigits:0}) + ' DKK';
+  dc.className = 'val ' + (dayChange >= 0 ? 'pos' : 'neg');
+}
+
+// ==================== TABS ====================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
+  document.getElementById(`panel-${name}`).classList.add('active');
+  
+  if (name === 'alarms') {
+    renderAlarms();
+    // Auto-generer alarmer for holdings hvis aktiveret
+    if (document.getElementById('autoAlarmHoldings').value === 'true') {
+      autoGenerateHoldingsAlarms();
+    }
+  }
+  if (name === 'assistant') {
+    updateTimestamp();
+  }
+  if (name === 'etf') {
+    document.getElementById('panel-etf').classList.add('active');
+    renderETFMonitor();
+    return;
+  }
+}
+
+// ==================== PORTFOLIO ====================
+function calcTotal() {
+  const cash = parseFloat(document.getElementById('cash').value) || 0;
+  let holdingsVal = 0;
+  
+  holdings.forEach(h => {
+    const s = stocks[h.ticker];
+    if (s) {
+      // Konverter til DKK
+      const priceInDKK = s.price * (fxRates[s.currency] || 1);
+      holdingsVal += h.qty * priceInDKK;
+    }
+  });
+  
+  const total = cash + holdingsVal;
+  document.getElementById('totalVal').textContent = total.toLocaleString('da-DK', {minimumFractionDigits:0}) + ' DKK';
+  
+  // DAGLIG GEAVINST - ALTID opdateret (FIX for issue #2)
+  updateDayChange();
+  
+  // Risiko parametre - brugt til anbefaling
+  const kelly = parseFloat(document.getElementById('kelly').value) || 10;
+  const kellyPos = calcPositionSize(cash, kelly, 'DKK', 1);
+  
+  // Opdater RSI indikator farver på holdings
+  renderHoldings();
+  
+  // Generer auto-alarmer for holdings
+  autoGenerateHoldingsAlarms();
+}
+
+function renderHoldings() {
+  const tbody = document.getElementById('holdingsBody');
+  tbody.innerHTML = '';
+  
+  holdings.forEach((h, i) => {
+    const s = stocks[h.ticker];
+    if (!s) return;
+    
+    // Konverter til DKK
+    const priceInDKK = s.price * (fxRates[s.currency] || 1);
+    const val = h.qty * priceInDKK;
+    const pnl = ((s.price - h.buyPrice) / h.buyPrice * 100).toFixed(1);
+    const cls = pnl >= 0 ? 'pos' : 'neg';
+    const currencyIcon = s.currency !== 'DKK' ? ` <span class="info-badge">${s.currency}</span>` : '';
+    
+    // Kun aktienavnet (IKKE købspris feltet) skal linke til AI-assistent
+    const dailyChangePct = s.change || 0;
+    const dailyChangeDKK = (h.qty * priceInDKK * dailyChangePct / 100);
+    const dailyCls = dailyChangePct >= 0 ? 'pos' : 'neg';
+    tbody.innerHTML += `<tr class="stock-row" onclick="switchTab('assistant');loadStock('${h.ticker}')">
+      <td><b>${h.ticker}</b><span style="color:#888;font-size:0.8em"> - ${s.name}</span>${currencyIcon}</td>
+      <td><input type="number" value="${h.qty}" style="width:60px;background:#111;border:1px solid #333;color:#fff;padding:3px 6px;border-radius:3px" onchange="holdings[${i}].qty=parseFloat(this.value);calcTotal()"></td>
+      <td><input type="number" value="${h.buyPrice}" style="width:70px;background:#111;border:1px solid #333;color:#fff;padding:3px 6px;border-radius:3px" onchange="holdings[${i}].buyPrice=parseFloat(this.value);calcTotal()"></td>
+      <td>${priceInDKK.toFixed(0)}</td>
+      <td class="${dailyCls}">${dailyChangePct >= 0 ? '+' : ''}${dailyChangePct.toFixed(1)}%<br><span style="font-size:0.72em;color:#888">${dailyChangeDKK >= 0 ? '+' : ''}${dailyChangeDKK.toLocaleString('da-DK', {minimumFractionDigits:0})} DKK</span></td>
+      <td class="${cls}">${pnl >= 0 ? '+' : ''}${pnl}%</td>
+      <td>${val.toLocaleString('da-DK', {minimumFractionDigits:0})} DKK</td>
+      <td><button onclick="event.stopPropagation();holdings.splice(${i},1);calcTotal()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.2em">×</button></td>
+    </tr>`;
+  });
+}
+
+let lastSelectedSymbol = '';
+
+function addHoldingFromDropdown() {
+  const sel = lastSelectedSymbol;
+  if (!sel) {
+    alert('Vælg venligst en aktie fra søgefeltet.');
+    return;
+  }
+  const qty = parseFloat(document.getElementById('stockQty').value) || 1;
+  const buyPriceRaw = parseFloat(document.getElementById('stockBuyPrice').value);
+  const s = stocks[sel];
+  const buyPrice = buyPriceRaw || s.price * (fxRates[s.currency] || 1);
+  holdings.push({ ticker: sel, qty, buyPrice });
+  // Reset felter
+  lastSelectedSymbol = '';
+  document.getElementById('stockSearch').value = '';
+  document.getElementById('stockQty').value = '';
+  document.getElementById('stockBuyPrice').value = '';
+  calcTotal();
+}
+
+// ==================== AI ASSISTANT ====================
+async function loadStock(symbol) {
+  const sel = symbol || document.getElementById('stockSelect')?.value;
+  if (!sel || !stocks[sel]) return;
+  
+  const s = stocks[sel];
+  const fxRate = fxRates[s.currency] || 1;
+  
+  // Sæt valutakurs automatisk
+  document.getElementById('currencySelect').value = s.currency;
+  document.getElementById('fxRate').value = fxRate.toFixed(2);
+
+  // Nulstil daglig data og pris felt
+  resetDailyDataUI();
+  const priceEl = document.getElementById('stockPrice');
+  priceEl.value = ''; // Nulstil så brugeren ikke ser gammel værdi
+  
+  // Prøv at hente live pris først
+  await fetchAndUpdatePrice(sel);
+  
+  // Hent nyheder
+  await loadStockNews(sel);
+  
+  renderIndicators(sel);
+  calcRec();
+}
+
+// AI Assistant autocomplete
+function filterStocksAI(query) {
+  const dropdown = document.getElementById('stockDropdownAI');
+  if (!query || query.length < 1) {
+    dropdown.classList.remove('show');
+    return;
+  }
+  
+  const q = query.toLowerCase();
+  const matches = allStocks.filter(s => 
+    s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+  );
+  
+  if (matches.length === 0) {
+    dropdown.innerHTML = '<div style="padding:10px;color:#888;">Ingen resultater fundet</div>';
+  } else {
+    let html = '';
+    matches.slice(0, 20).forEach(stock => {
+      const highlighted = stock.name.replace(
+        new RegExp('(' + query + ')', 'gi'),
+        '<mark>$1</mark>'
+      );
+      html += '<div class="stock-item" data-symbol="' + stock.symbol + '">' +
+        '<span class="symbol">' + stock.symbol + '</span>' +
+        '<span class="name">' + highlighted + '</span>' +
+        '</div>';
+    });
+    dropdown.innerHTML = html;
+  }
+  
+  dropdown.classList.add('show');
+  
+  // Add click handlers
+  dropdown.querySelectorAll('.stock-item').forEach(item => {
+    item.addEventListener('click', function() {
+      loadStockAI(this.dataset.symbol);
+    });
+  });
+}
+
+function loadStockAI(symbol) {
+  document.getElementById('stockDropdownAI').classList.remove('show');
+  document.getElementById('stockSearchAI').value = symbol;
+  loadStock(symbol);
+}
+
+function handleKeyDownAI(e) {
+  const dropdown = document.getElementById('stockDropdownAI');
+  const items = dropdown.querySelectorAll('.stock-item');
+  if (!items.length) return;
+  if (e.key === 'Enter' && items.length > 0) {
+    e.preventDefault();
+    loadStockAI(items[0].dataset.symbol);
+  }
+}
+
+function resetDailyDataUI() {
+  const fields = ['dailyOpen','dailyHigh','dailyLow','dailyPrevClose','dailyVolume','dailyChangeBox'];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '--'; el.className = 'val'; }
+  });
+}
+
+function renderIndicators(ticker) {
+  const s = stocks[ticker];
+  const price = parseFloat(document.getElementById('stockPrice').value) || s.price * (fxRates[s.currency] || 1);
+  
+  // RSI
+  const rsiCls = s.rsi < 30 ? 'buy' : s.rsi > 70 ? 'sell' : 'neutral';
+  document.getElementById('rsi').textContent = s.rsi;
+  document.getElementById('rsi').className = 'vl ' + rsiCls;
+  
+  // ATR
+  document.getElementById('atr').textContent = s.atr;
+  document.getElementById('atr').className = 'vl neutral';
+  
+  // SMA'er
+  document.getElementById('sma20').textContent = s.sma20;
+  document.getElementById('sma50').textContent = s.sma50;
+  document.getElementById('sma200').textContent = s.sma200;
+  
+  const sma20cls = price > s.sma20 ? 'buy' : 'sell';
+  const sma50cls = price > s.sma50 ? 'buy' : 'sell';
+  const sma200cls = price > s.sma200 ? 'buy' : 'sell';
+  
+  document.getElementById('sma20').className = 'vl ' + sma20cls;
+  document.getElementById('sma50').className = 'vl ' + sma50cls;
+  document.getElementById('sma200').className = 'vl ' + sma200cls;
+  
+  // MACD
+  document.getElementById('macd').textContent = (s.macd > 0 ? '+' : '') + s.macd;
+  document.getElementById('macd').className = 'vl ' + (s.macd > 0 ? 'buy' : 'sell');
+}
+
+function calcRec() {
+  const ticker = document.getElementById('stockSelect').value;
+  const box = document.getElementById('analysisBox');
+  
+  if (!ticker) { 
+    box.classList.remove('show'); 
+    return; 
+  }
+  
+  renderIndicators(ticker);
+  
+  const cash = parseFloat(document.getElementById('cash').value) || 0;
+  const priceInput = parseFloat(document.getElementById('stockPrice').value) || 0;
+  const currency = document.getElementById('currencySelect').value;
+  const fxRate = parseFloat(document.getElementById('fxRate').value) || fxRates[currency];
+  
+  // Konverter pris tilbage til original valuta
+  const pricePerShare = priceInput / fxRate;
+  
+  // Risiko parametre
+  const kelly = parseFloat(document.getElementById('kelly').value) / 100;
+  const stopLoss = parseFloat(document.getElementById('stopLoss').value) / 100;
+  const maxLoss = parseFloat(document.getElementById('maxLoss').value) / 100;
+  const rr = parseFloat(document.getElementById('rr').value) || 1;
+  
+  const s = stocks[ticker];
+  const rsi = s ? s.rsi : 50;
+  
+  // Dynamisk position sizing
+  const posSize = calcPositionSize(cash, kelly * 100, currency, fxRate);
+  
+  // Beregn anbefalet antal aktier baseret på Kelly %
+  const maxQty = Math.floor(posSize.kellyPos / priceInput);
+  
+  // Beregn gebyr for 1 aktie vs 2 aktier (for at vise gebyrpåvirkning)
+  const cost1 = calcTotalCost(1, pricePerShare, currency, fxRate);
+  const cost2 = calcTotalCost(2, pricePerShare, currency, fxRate);
+  
+  // Stop/target priser
+  const sl = priceInput * (1 + stopLoss);
+  const tp = priceInput * (1 + Math.abs(stopLoss) * rr / 100);
+  
+  // Risk/reward
+  const riskAmount = posSize.kellyPos * Math.abs(stopLoss);
+  const rewardAmount = riskAmount * rr;
+  
+  // Bestem signal baseret på RSI + trend
+  let signal = 'HOLD';
+  if (rsi < 35 && priceInput < s.sma50) signal = 'BUY';
+  if (rsi > 65 || priceInput > s.sma200 * 1.1) signal = 'SELL';
+  
+  // RSI zones
+  const rsiZone = rsi < 30 ? '🟢 OVERSOLGT' : rsi > 70 ? '🔴 OVERKØBT' : '🟡 NEUTRAL';
+  
+  // Anbefalingstekst
+  let recText = 'HOLD - Vent på bedre entry';
+  let recCls = 'hold';
+  
+  if (signal === 'BUY' && posSize.viable) {
+    recText = `KØB ${maxQty} stk for ${posSize.kellyPos.toLocaleString('da-DK')} DKK (${(posSize.kellyPos / priceInput).toFixed(1)} @ ${priceInput.toFixed(2)} DKK)`;
+    recCls = '';
+  } else if (signal === 'SELL') {
+    recText = 'SÆLG - Overkøbt territory';
+    recCls = 'sell';
+  } else if (!posSize.viable) {
+    recText = '❌ Position for lille (gebyrer spiser gevinsten)';
+    recCls = 'sell';
+  }
+  
+  // === FORMEL VISNING ===
+  const kellyPct = (kelly * 100).toFixed(1);
+  const kellyPosRounded = posSize.kellyPos;
+  const rrRounded = rr.toFixed(1);
+  const formulaBox = `<div class="fee-box" style="border-color:var(--cyan);margin-top:8px">
+    <div style="font-size:0.78em;color:var(--cyan);margin-bottom:6px"><b>📐 Beregningsformel</b></div>
+    <div style="font-size:0.82em;color:#ccc;margin-bottom:4px"><b>Anbefaling = Kelly% × Position × Risk/Reward</b></div>
+    <div style="font-size:0.8em;color:#888">Eksempel: <b>${kellyPct}%</b> × <b>${kellyPosRounded.toLocaleString('da-DK')}</b> × <b>${rrRounded}</b> = <b style="color:var(--green)">${kellyPosRounded.toLocaleString('da-DK')} DKK</b> max investering</div>
+    <div style="font-size:0.72em;color:#555;margin-top:4px">Kelly ${kellyPct}% × Position ${kellyPosRounded.toLocaleString('da-DK')} DKK × R/R 1:${rrRounded}</div>
+  </div>`;
+
+  // === BALANCE CHECK ADVARSLER ===
+  const recommendation = posSize.kellyPos;
+  const fee = cost1.fee;
+  const feePct = priceInput > 0 ? (fee / (priceInput * 1) * 100) : 0;
+  let balanceWarnings = '';
+
+  if (recommendation > 0 && recommendation < 500) {
+    balanceWarnings += `<div class="alarm-item" style="border-color:var(--yellow);margin-top:8px">
+      <div class="title" style="color:var(--yellow)">⚠️ Minimumshandel</div>
+      <div class="desc">Anbefaling på kun <b>${recommendation.toLocaleString('da-DK')} DKK</b> er under 500 DKK. Gebyrer (${fee.toLocaleString('da-DK')} DKK) vil udgøre for meget af positionen.</div>
+    </div>`;
+  }
+  if (recommendation > cash) {
+    balanceWarnings += `<div class="alarm-item critical" style="margin-top:8px">
+      <div class="title">🚨 Ikke nok likviditet</div>
+      <div class="desc">Anbefaling på <b>${recommendation.toLocaleString('da-DK')} DKK</b> overstiger din kontantbeholdning på <b>${cash.toLocaleString('da-DK')} DKK</b>. Du har ikke råd til denne position.</div>
+    </div>`;
+  }
+  if (feePct > 5) {
+    balanceWarnings += `<div class="alarm-item" style="border-color:var(--orange);margin-top:8px">
+      <div class="title" style="color:var(--orange)">💸 Høje gebyrer</div>
+      <div class="desc">Gebyr på <b>${fee.toLocaleString('da-DK')} DKK</b> udgør <b>${feePct.toFixed(1)}%</b> af positionen (>5%). Overvej et større køb for at reducere gebyrpåvirkningen.</div>
+    </div>`;
+  }
+
+  // Fee breakdown HTML – viser gebyrformlen tydeligt
+  // Formel: Gebyr = max(25 DKK, 0.15% × tradeValue), extra 0.11% hvis outsideNordnet
+  let feeBox = `<div class="fee-box">
+    <div style="font-size:0.75em;color:#888;margin-bottom:6px">💡 Formel: <b>Gebyr = max(25 DKK, 0.15% × kurs × antal)</b></div>
+    <div class="fee-row"><span>1 aktie: ${pricePerShare.toFixed(2)} ${currency} × ${fxRate.toFixed(2)} = ${cost1.priceInDKK.toFixed(2)} DKK</span><span></span></div>
+    <div class="fee-row"><span>&nbsp;&nbsp;0.15% × ${cost1.priceInDKK.toFixed(2)} = ${(cost1.priceInDKK * 0.0015).toFixed(2)} DKK</span><span></span></div>
+    <div class="fee-row"><span>&nbsp;&nbsp;Gebyr (min 25 DKK):</span><span>${cost1.fee.toLocaleString('da-DK')} DKK</span></div>
+    <div class="fee-row total"><span>= Total for 1 aktie:</span><span>${cost1.total.toLocaleString('da-DK')} DKK</span></div>
+    <div class="fee-row"><span>2 aktier total:</span><span>${cost2.total.toLocaleString('da-DK')} DKK</span></div>
+    <div class="fee-row total"><span>Total (${maxQty} stk):</span><span>${(cost1.total * maxQty).toLocaleString('da-DK')} DKK</span></div>
+    <div style="font-size:0.72em;color:#666;margin-top:6px">Nordnet: 0.15%, min 25 DKK, maks 299 DKK. Outside Nordnet +0.11% extra.</div>
+  </div>`;
+  
+  // ETF note hvis beholdning er for lille
+  let etfNote = '';
+  if (cash < 2000) {
+    etfNote = `<div class="etf-note">💡 ${posSize.recommendation}<br>Overvej: <b>IEEM</b> (MSCI World ETF) eller <b>SPYL</b> (S&P 500 ETF) for små beløb</div>`;
+  }
+  
+  // Currency indicator
+  const currencyIndicator = currency !== 'DKK' ? `<span class="info-badge">${currency}/DKK: ${fxRate}</span>` : '';
+  
+  box.innerHTML = `
+    <h3>💡 ${ticker} ANALYSE <span style="color:#888;font-size:0.7em">${s.name}</span> ${currencyIndicator}</h3>
+    <div class="meta">💰 KONTANT: ${cash.toLocaleString('da-DK')} DKK &nbsp;|&nbsp; RSI: ${rsi} (${rsiZone})</div>
+    <div class="rec ${recCls}">📊 ANBEFALING: ${recText}</div>
+    ${formulaBox}
+    ${balanceWarnings}
+    ${feeBox}
+    ${etfNote}
+    <div class="meta">⚠️ Nordnet gebyr: 0.15% (min 25 DKK, maks 299 DKK)</div>
+    
+    <div class="section-title" style="margin-top:12px">⚙️ RISIKO-BREAKDOWN</div>
+    <div class="risk-row"><span class="tooltip">Max position (${(kelly*100).toFixed(0)}%)<span class="tooltip-text">Maksimal procentdel af din beholdning i én aktie baseret på Kelly %</span></span><span>${posSize.maxPos.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span>Stop-loss (${(stopLoss*100).toFixed(1)}%)</span><span>Tab max ${riskAmount.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span>Risk/Reward (1:${rr})</span><span>Potentiel gevinst ${rewardAmount.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span class="tooltip">Kelly optimal (${posSize.kellyOpt.toFixed(1)}%)<span class="tooltip-text">Kelly Criterion = vindende probability × gevinst/gennemsnit - tab/gennemsnit.<br>Bruges til position sizing.</span></span><span>${posSize.kellyPos.toLocaleString('da-DK')} DKK</span></div>
+    <div class="risk-row"><span>Min. viable position</span><span>${posSize.minViable.toLocaleString('da-DK')} DKK</span></div>
+    
+    <div class="section-title" style="margin-top:12px">🎯 STRATEGI</div>
+    <div class="risk-row"><span>Entry</span><span>~${priceInput.toFixed(2)} DKK</span></div>
+    <div class="risk-row"><span class="tooltip">Stop-loss<span class="tooltip-text">Automatisk salg hvis kursen falder X% fra købspris. Stop-loss止损.</span></span><span>${sl.toFixed(2)} DKK (${(stopLoss*100).toFixed(1)}%)</span></div>
+    <div class="risk-row"><span>Take-profit</span><span>${tp.toFixed(2)} DKK (+${((tp/priceInput-1)*100).toFixed(1)}%)</span></div>
+    
+    <div class="section-title" style="margin-top:12px">⚠️ ALARM-TRIGGERS</div>
+    <div class="risk-row"><span>🔴 Stop-loss rammer</span><span>ved ${sl.toFixed(2)} DKK</span></div>
+    <div class="risk-row"><span>🟢 Take-profit rammer</span><span>ved ${tp.toFixed(2)} DKK</span></div>
+    <div class="risk-row"><span>📊 Volatilitet</span><span>${(s.atr/priceInput*100).toFixed(1)}% ATR</span></div>
+    <div class="risk-row"><span>📉 Max tab grænse (${(maxLoss*100).toFixed(1)}%)</span><span>ved ${(priceInput * (1-maxLoss)).toFixed(2)} DKK</span></div>`;
+  
+  box.classList.add('show');
+  
+  // Generer alarms for denne aktie
+  generateAlarmsForStock(ticker, priceInput, rsi);
+}
+
+function analyzeStock(ticker) {
+  document.getElementById('stockSelect').value = ticker;
+  if (stocks[ticker]) {
+    const s = stocks[ticker];
+    document.getElementById('stockPrice').value = (s.price * (fxRates[s.currency] || 1)).toFixed(2);
+    document.getElementById('currencySelect').value = s.currency;
+    document.getElementById('fxRate').value = (fxRates[s.currency] || 1).toFixed(2);
+  }
+  switchTab('assistant');
+  calcRec();
+}
+
+// ==================== ALARMS ====================
+// Auto-generer alarmer for holdings
+function autoGenerateHoldingsAlarms() {
+  if (document.getElementById('autoAlarmHoldings').value !== 'true') return;
+  
+  const rsiOverbought = parseInt(document.getElementById('rsiOverbought').value) || 70;
+  const rsiOversold = parseInt(document.getElementById('rsiOversold').value) || 30;
+  const pctChange = parseFloat(document.getElementById('pctChangeAlarm').value) || 5;
+  
+  holdings.forEach(h => {
+    const s = stocks[h.ticker];
+    if (!s) return;
+    
+    const priceInDKK = s.price * (fxRates[s.currency] || 1);
+    
+    // Tjek om alarm allerede eksisterer
+    const exists = alarms.find(a => a.ticker === h.ticker && a.type === 'info');
+    
+    if (!exists) {
+      // RSI alarm - SPECIFIKKE beskeder med tidsperspektiv
+      if (s.rsi < rsiOversold) {
+        alarms.push({
+          ticker: h.ticker,
+          type: 'info',
+          pct: 0,
+          period: `RSI ${s.rsi} (idag)`,
+          msg: `RSI ${s.rsi}/30 - OVERSOLGT zone. Potentiel optur sandsynlig inden for 1-5 dage. Overvej at købe på dip.`,
+          updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
+        });
+      } else if (s.rsi > rsiOverbought) {
+        alarms.push({
+          ticker: h.ticker,
+          type: 'warn',
+          pct: 0,
+          period: `RSI ${s.rsi} (idag)`,
+          msg: `RSI: ${s.rsi}/${rsiOverbought} - tæt på overkøbt zone. Korrektion sandsynlig inden for 1-5 dage. Overvej gevinstsikring.`,
+          updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
+        });
+      }
+      
+      // % ændring alarm
+      if (Math.abs(s.change) >= pctChange) {
+        alarms.push({
+          ticker: h.ticker,
+          type: s.change > 0 ? 'info' : 'danger',
+          pct: s.change,
+          period: 'denne uge',
+          msg: `Kurs ${s.change > 0 ? 'steg' : 'faldt'} ${s.change.toFixed(1)}% ${s.change > 0 ? 'denne uge' : 'denne måned'}`,
+          updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
+        });
+      }
+    }
+  });
+}
+
+// Generer alarmer for en specifik aktie (i AI Assistant)
+function generateAlarmsForStock(ticker, price, rsi) {
+  const stopLoss = parseFloat(document.getElementById('stopLoss').value) / 100;
+  const rr = parseFloat(document.getElementById('rr').value) || 1;
+  
+  const sl = price * (1 + stopLoss);
+  const tp = price * (1 + Math.abs(stopLoss) * rr / 100);
+  
+  // Køb alarm
+  if (rsi < 35) {
+    const exists = alarms.find(a => a.ticker === ticker && a.period === 'køb-anbefaling');
+    if (!exists) {
+      alarms.push({
+        ticker,
+        type: 'info',
+        pct: 0,
+        period: 'køb-anbefaling (idag)',
+        msg: `BUY signal - RSI ${rsi}/30 - OVERSOLGT. Potentiel optur sandsynlig inden for 1-5 dage.`,
+        updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
+      });
+    }
+  }
+  
+  // Salg alarm
+  if (rsi > 65) {
+    const exists = alarms.find(a => a.ticker === ticker && a.period === 'salg-anbefaling');
+    if (!exists) {
+      alarms.push({
+        ticker,
+        type: 'warn',
+        pct: 0,
+        period: 'salg-anbefaling (idag)',
+        msg: `SELL signal - RSI ${rsi}/70 - OVERKØBT. Korrektion sandsynlig inden for 1-5 dage. Overvej gevinstsikring.`,
+        updated: new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})
+      });
+    }
+  }
+}
+
+function renderAlarms() {
+  const list = document.getElementById('alarmsList');
+  list.innerHTML = '';
+  
+  if (alarms.length === 0) {
+    list.innerHTML = '<div class="alarm-item info"><div class="desc">Ingen aktive alarmer</div></div>';
+    return;
+  }
+  
+  alarms.forEach((a, i) => {
+    const typeMap = { warn:'alarm-item', danger:'alarm-item critical', info:'alarm-item info' };
+    const iconMap = { warn:'⚠️', danger:'🚨', info:'📰' };
+    // Klick på alarm → åben AI assistant med den aktie
+    list.innerHTML += `<div class="${typeMap[a.type]||'alarm-item'}" onclick="switchTab('assistant');loadStock('${a.ticker}')" style="cursor:pointer">
+      <div class="title">${iconMap[a.type]||'🔔'} ${a.ticker} ${a.pct ? (a.pct > 0 ? '+'+a.pct : a.pct)+'%' : ''} ${a.period ? '('+a.period+')' : ''}</div>
+      <div class="desc">${a.msg}</div>
+      <div class="time">Sidst opdateret: ${a.updated || new Date().toLocaleDateString('da-DK')+' '+new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'})}</div>
+      <button onclick="event.stopPropagation();alarms.splice(${i},1);renderAlarms()" style="margin-top:6px;background:none;border:1px solid #444;color:#666;padding:2px 8px;border-radius:3px;font-size:0.75em;cursor:pointer">Fjern</button>
+    </div>`;
+  });
+// Vis guide popup for trading-koncepter
+
+function addAlarm() {
+  const ticker = prompt('Ticker:').toUpperCase().trim();
+  if (!ticker) return;
+  const msg = prompt('Alarm besked:') || 'Tjek denne aktie';
+  const pct = parseFloat(prompt('Procent grænse (f.eks. -5 eller +8):')) || 0;
+  const period = prompt('Periode (f.eks. dag, uge, manuel):') || 'manuel';
+  alarms.push({ ticker, type: pct > 0 ? 'warn' : 'danger', pct, period, msg });
+  renderAlarms();
+}
+
+// Tilføj alarm direkte fra AI-assistent
+function addAlarmFromAssistant() {
+  const ticker = document.getElementById('stockSelect').value;
+  if (!ticker) {
+    alert('Vælg først en aktie i dropdown');
+    return;
+  }
+  
+  const price = parseFloat(document.getElementById('stockPrice').value) || 0;
+  const s = stocks[ticker];
+  const rsi = s ? s.rsi : 50;
+  const stopLoss = parseFloat(document.getElementById('stopLoss').value) / 100;
+  
+  const sl = price * (1 + stopLoss);
+  const tp = price * (1 + Math.abs(stopLoss) * parseInt(document.getElementById('rr').value) / 100);
+  
+  const msg = prompt('Alarm besked:', `${ticker} - Stop-loss: ${sl.toFixed(2)} DKK, Take-profit: ${tp.toFixed(2)} DKK`) || 'Tjek denne aktie';
+  const pct = parseFloat(prompt('Procent grænse:', '5')) || 5;
+  
+  alarms.push({ ticker, type: 'warn', pct, period: 'manuel', msg });
+  renderAlarms();
+  switchTab('alarms');
+}
+
+function updateAlarmParams() {
+  alarmParams.rsiOverbought = parseInt(document.getElementById('rsiOverbought').value) || 70;
+  alarmParams.rsiOversold = parseInt(document.getElementById('rsiOversold').value) || 30;
+  alarmParams.pctChangeAlarm = parseFloat(document.getElementById('pctChangeAlarm').value) || 5;
+  alarmParams.autoAlarmHoldings = document.getElementById('autoAlarmHoldings').value === 'true';
+}
+
+// ==================== VERSION SELECTOR ====================
+function switchVersion(version) {
+  if (version === 'v2') {
+    window.open('ai-trading-v2.html', '_blank');
+  } else if (version === 'v1') {
+    window.open('ai-trading-assistant.html', '_blank');
+  }
+  // Reset til v3
+  document.getElementById('versionSelect').value = 'v3';
+}
+
+// ==================== TIMESTAMP ====================
+function updateTimestamp() {
+  const now = new Date();
+  const formatted = now.toLocaleDateString('da-DK') + ' ' + now.toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('lastUpdate').textContent = 'Opdateret: ' + formatted;
+}
+
+// ==================== TOOLTIP SYSTEM ====================
+let activeTooltip = null;
+
+document.addEventListener('mouseover', function(e) {
+  const tooltipEl = e.target.closest('.tooltip');
+  if (!tooltipEl) return;
+  
+  const tip = tooltipEl.querySelector('.tooltip-text');
+  if (!tip) return;
+  
+  // Show tooltip
+  tooltipEl.classList.add('show-tooltip');
+  
+  // Position based on mouse
+  positionTooltip(tooltipEl, tip, e.clientX, e.clientY);
+  activeTooltip = tooltipEl;
+});
+
+document.addEventListener('mouseout', function(e) {
+  const tooltipEl = e.target.closest('.tooltip');
+  if (tooltipEl) {
+    tooltipEl.classList.remove('show-tooltip');
+    activeTooltip = null;
+  }
+});
+
+document.addEventListener('click', function(e) {
+  if (activeTooltip && !e.target.closest('.tooltip')) {
+    activeTooltip.classList.remove('show-tooltip');
+    activeTooltip = null;
+  }
+});
+
+function positionTooltip(tooltipEl, tip, mouseX, mouseY) {
+  const tipW = 280;
+  const tipH = tip.offsetHeight || 120;
+  const margin = 14;
+  
+  let left = mouseX + margin;
+  let top = mouseY + margin;
+  
+  // Right edge check
+  if (left + tipW > window.innerWidth - margin) {
+    left = mouseX - tipW - margin;
+  }
+  
+  // Bottom edge check
+  if (top + tipH > window.innerHeight - margin) {
+    top = mouseY - tipH - margin;
+  }
+  
+  // Left edge check
+  if (left < margin) {
+    left = margin;
+  }
+  
+  // Top edge check
+  if (top < margin) {
+    top = margin;
+  }
+  
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+
+document.addEventListener('mousemove', function(e) {
+  if (!activeTooltip) return;
+  const tip = activeTooltip.querySelector('.tooltip-text');
+  if (!tip) return;
+  positionTooltip(activeTooltip, tip, e.clientX, e.clientY);
+});
+
+// ==================== TOOLTIP HELPER ====================
+// Returnerer tooltip HTML for et givent label
+function tooltip(label, text) {
+  return `<span class="tooltip">${label}<span class="tooltip-text">${text}</span></span>`;
+}
+
+// ==================== CHAT MED GEMA ====================
+// Chat præferencer (gemmes i localStorage)
+let chatPrefs = {
+  riskLevel: 'medium',     // low, medium, high
+  onlyDanish: false,
+  preferEtf: false
+};
+
+function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addChatMessage(msg, 'user');
+  // Simuler GEMA svar
+  setTimeout(() => {
+    const response = generateGemaResponse(msg);
+    addChatMessage(response, 'gema');
+  }, 500);
+}
+
+function quickChat(msg) {
+  document.getElementById('chatInput').value = msg;
+  sendChatMessage();
+}
+
+function addChatMessage(text, sender) {
+  const box = document.getElementById('chatMessages');
+  const time = new Date().toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'});
+  const html = `<div class="chat-msg">
+    <span class="${sender}">${sender === 'user' ? 'Du:' : 'GEMA:'}</span>
+    <span class="time">${time}</span>
+    <div style="margin-top:3px">${text}</div>
+  </div>`;
+  box.innerHTML += html;
+  box.scrollTop = box.scrollHeight;
+}
+
+function generateGemaResponse(userMsg) {
+  const msg = userMsg.toLowerCase();
+
+  // DK kun danske
+  if (msg.includes('kun danske') || msg.includes('dk kun')) {
+    portfolioPrefs.dkOnly = true;
+    portfolioPrefs.etfPreferred = false;
+    return "📌 Kun danske aktier aktiveret. Jeg vil nu fokusere på danske aktier fra Københavns Fondsbørs.";
+  }
+
+  // ETF foretrukket
+  if (msg.includes('etf') && (msg.includes('foretræk') || msg.includes('foretruk'))) {
+    portfolioPrefs.etfPreferred = true;
+    return "📌 ETF foretrukket aktiveret. Jeg vil anbefale billige ETF'er over enkeltaktier.";
+  }
+
+  // Lav risiko
+  if (msg.includes('risiko') && (msg.includes('lav') || msg.includes('lavt'))) {
+    portfolioPrefs.riskLevel = 'low';
+    document.getElementById('kelly').value = 5;
+    document.getElementById('maxLoss').value = 1;
+    return "📌 Risiko sat til LAV. Max Kelly 5%, max tab 1%.";
+  }
+
+  // Medium risiko
+  if (msg.includes('risiko') && (msg.includes('medium') || msg.includes('mellem'))) {
+    portfolioPrefs.riskLevel = 'medium';
+    document.getElementById('kelly').value = 10;
+    document.getElementById('maxLoss').value = 2;
+    return "📌 Risiko sat til MEDIUM. Max Kelly 10%, max tab 2%.";
+  }
+
+  // Høj risiko
+  if (msg.includes('risiko') && (msg.includes('høj') || msg.includes('højt'))) {
+    portfolioPrefs.riskLevel = 'high';
+    document.getElementById('kelly').value = 25;
+    document.getElementById('maxLoss').value = 5;
+    return "📌 Risiko sat til HØJ. Max Kelly 25%, max tab 5%.";
+  }
+
+  // Alarm på NVDA RSI
+  if (msg.includes('alarm') && msg.includes('nvda') && msg.includes('rsi')) {
+    addAlarm({
+      ticker: 'NVDA',
+      type: 'RSI',
+      value: 75,
+      direction: 'above',
+      message: 'NVDA RSI over 75 - overkøbt'
+    });
+    return "🔔 Alarm tilføjet: NVDA RSI > 75";
+  }
+
+  // Bedste positioner
+  if (msg.includes('bedste') || msg.includes('anbefal')) {
+    return "📊 Baseret på din risiko og beholdning, sektionen viser de bedste positioner lige nu.";
+  }
+
+  return "Jeg forstod ikke. Prøv: 'Kun danske', 'ETF foretrukket', 'Lav risiko', 'Alarm på NVDA RSI > 75'";
+}
+
+// ==================== NYHEDER VISNING ====================
+async function loadStockNews(ticker) {
+  const newsEl = document.getElementById('newsList');
+  if (!newsEl) return;
+  newsEl.innerHTML = '<span style="color:#666">⏳ Henter nyheder...</span>';
+
+  const news = await fetchStockNews(ticker);
+
+  if (news.length === 0) {
+    newsEl.innerHTML = '<span style="color:#555">Ingen nyheder fundet for denne aktie.</span>';
+    return;
+  }
+
+  newsEl.innerHTML = news.map(item => {
+    const date = new Date(item.time * 1000);
+    const timeAgo = getTimeAgo(date);
+    const sourceIcon = item.source ? getSourceIcon(item.source) : '📰';
+    return `<div style="margin-bottom:10px;padding:8px 10px;background:#1e1e1e;border-radius:6px;border-left:3px solid var(--cyan)">
+      <div style="font-size:0.88em;margin-bottom:3px">${item.title}</div>
+      <div style="font-size:0.72em;color:#666">${sourceIcon} ${item.source || 'Ukendt'} · ${timeAgo}</div>
+    </div>`;
+  }).join('');
+}
+
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 60) return `for ${diffMins} min siden`;
+  if (diffHours < 24) return `for ${diffHours} t${diffHours === 1 ? 'ime' : 'imer'} siden`;
+  return `for ${diffDays} d${diffDays === 1 ? 'ag' : 'age'} siden`;
+}
+
+function getSourceIcon(source) {
+  const s = source.toLowerCase();
+  if (s.includes('reuters')) return '🇬🇧 Reuters';
+  if (s.includes('bloomberg')) return '🇬🇧 Bloomberg';
+  if (s.includes('cnbc')) return '🇺🇸 CNBC';
+  if (s.includes('wsj') || s.includes('wall street')) return '🇺🇸 WSJ';
+  if (s.includes('marketwatch')) return '🇺🇸 MarketWatch';
+  if (s.includes('seeking')) return '🇺🇸 Seeking Alpha';
+  if (s.includes('finans') || s.includes('borsen')) return '🇩🇰 Finans';
+  if (s.includes('politiken') || s.includes('information')) return '🇩🇰';
+  return '📰';
+}
+
+// ==================== INIT ====================
+// ==================== ETF MONITOR ====================
+const etfList = [
+    {symbol:'SPY',name:'S&P 500',currency:'USD'},
+    {symbol:'QQQ',name:'Nasdaq 100',currency:'USD'},
+    {symbol:'VTI',name:'Vanguard Total',currency:'USD'},
+    {symbol:'GLD',name:'Gold',currency:'USD'},
+    {symbol:'TLT',name:'Treasury Bond',currency:'USD'},
+    {symbol:'XLE',name:'Energy',currency:'USD'},
+    {symbol:'ARKK',name:'ARK Innovation',currency:'USD'},
+    {symbol:'SXR8.DE',name:'iShares S&P 500',currency:'EUR'},
+    {symbol:'SWDA.L',name:'MSCI World',currency:'GBP'},
+  ];
+
+async function renderETFMonitor() {
+  const etfList = [
+    {symbol:'SPY',name:'S&P 500',currency:'USD'},
+    {symbol:'QQQ',name:'Nasdaq 100',currency:'USD'},
+    {symbol:'VTI',name:'Vanguard Total',currency:'USD'},
+    {symbol:'GLD',name:'Gold',currency:'USD'},
+    {symbol:'TLT',name:'Treasury Bond',currency:'USD'},
+    {symbol:'XLE',name:'Energy',currency:'USD'},
+    {symbol:'ARKK',name:'ARK Innovation',currency:'USD'},
+    {symbol:'SXR8.DE',name:'iShares S&P 500',currency:'EUR'},
+    {symbol:'SWDA.L',name:'MSCI World',currency:'GBP'},
+  ];
+  
+  let koeb=0, afvent=0;
+  let html='';
+  
+  for (const e of etfList) {
+    try {
+      const price = await fetchYahooPrice(e.symbol);
+      const displayPrice = price.success ? price.price.toFixed(2) : '—';
+      const rsi = Math.floor(Math.random() * 40 + 30);
+      const signal = rsi < 30 ? 'KOEB' : rsi > 70 ? 'SELL' : 'AFVENT';
+      
+      if(signal==='KOEB') koeb++;
+      if(signal==='AFVENT') afvent++;
+      
+      const cls = signal==='KOEB' ? 'green' : signal==='SELL' ? 'red' : 'yellow';
+      const stop = price.success ? (price.price * 0.97).toFixed(2) : '—';
+      const target = price.success ? (price.price * 1.05).toFixed(2) : '—';
+      
+      html += '<tr><td><b>'+e.symbol+'</b><br><small style="color:#888">'+e.name+'</small></td><td>'+displayPrice+' '+e.currency+'</td><td><span class="signal '+cls+'">'+signal+'</span></td><td>'+rsi+'</td><td>'+stop+'</td><td>'+target+'</td></tr>';
+    } catch(err) {
+      html += '<tr><td><b>'+e.symbol+'</b><br><small style="color:#888">'+e.name+'</small></td><td>—</td><td><span class="signal yellow">AFVENT</span></td><td>—</td><td>—</td><td>—</td></tr>';
+    }
+  }
+  
+  document.getElementById('etf-body').innerHTML = html;
+  document.getElementById('etf-koeb').textContent = koeb;
+  document.getElementById('etf-afvent').textContent = afvent;
+}
+
+// Kald ved opstart
+renderETFMonitor();
+
+calcTotal();
+updateTimestamp();
+startAutoUpdater();
+
+// ==================== STOCK AUTOCOMPLETE ====================
+const allStocks = [
+  // Danske aktier - Københavns Fondsbørs
+  { symbol: 'NOVO-B.CO', name: 'Novo Nordisk B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'VWS.CO', name: 'Vestas Wind Systems', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'DSV.CO', name: 'DSV Panalpina', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'MAERSK-B.CO', name: 'A.P. Møller Maersk B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'COLO-B.CO', name: 'Coloplast B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'PNDORA.CO', name: 'PANDORA', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'CARL-B.CO', name: 'Carlsberg B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'DANSKE.CO', name: 'Danske Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'JYSK.CO', name: 'Jyske Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SYDB.CO', name: 'Sydbank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SPNOR-B.CO', name: 'Spar Nord Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ALMB.CO', name: 'Alm. Brand', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'TOP.CO', name: 'Topdanmark', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'TRYG.CO', name: 'Tryg', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'NKT.CO', name: 'NKT', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ALK-B.CO', name: 'ALK-Abelló B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'LUN.CO', name: 'H. Lundbeck', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'AMBU-B.CO', name: 'Ambu B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'FLS.CO', name: 'FLSmidth', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'GEN.CO', name: 'Genmab', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'GMAB.CO', name: 'GN Store Nord', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ISS.CO', name: 'ISS', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ORSTED.CO', name: 'Ørsted', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ROCK-B.CO', name: 'Rockwool B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SDF.CO', name: 'Schouw & Co', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SVIK.CO', name: 'Svitzer', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'TIVPET.CO', name: 'Tivoli', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SAS.CO', name: 'SAS', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'HM-B.CO', name: 'Hummel B', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ODF.CO', name: 'Odfjell', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'OPM.CO', name: 'OPM', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'RGLD.CO', name: 'Royal Gold', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'LM-B.CO', name: 'Lån & Spar Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'NKF-B.CO', name: 'Nordfyns Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'JUTJ.CO', name: 'Jutlander Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SPFO-B.CO', name: 'Sparekassen Fyn', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'TNLO-B.CO', name: 'Tønder Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'MSTYK.CO', name: 'Møns Bank', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'SBMW.CO', name: 'Spar Møns', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'BVNK-B.CO', name: 'Bavarian Nordic', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'EVAXION.CO', name: 'Evaxion Biotech', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'CTD.CO', name: 'CTD Holding', group: '🇩🇰 Danske Aktier' },
+  { symbol: 'ERIC-A.CO', name: 'Ericsson', group: '🇩🇰 Danske Aktier' },
+  // Amerikanske
+  { symbol: 'NVDA', name: 'NVIDIA', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'TSLA', name: 'Tesla', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'AAPL', name: 'Apple', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'MSFT', name: 'Microsoft', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'AMZN', name: 'Amazon', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'GOOGL', name: 'Alphabet (Google)', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'META', name: 'Meta Platforms', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'NFLX', name: 'Netflix', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'AMD', name: 'AMD', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'INTC', name: 'Intel', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'CRM', name: 'Salesforce', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'ORCL', name: 'Oracle', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'PYPL', name: 'PayPal', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'COIN', name: 'Coinbase', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'RIVN', name: 'Rivian', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'LCID', name: 'Lucid', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'PLTR', name: 'Palantir', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'SNOW', name: 'Snowflake', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'MDB', name: 'MongoDB', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'SQ', name: 'Square (Block)', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'UBER', name: 'Uber', group: '🇺🇸 Amerikanske Aktier' },
+  { symbol: 'ABNB', name: 'Airbnb', group: '🇺🇸 Amerikanske Aktier' },
+  // ETF'er
+  { symbol: 'SPY', name: 'S&P 500 ETF', group: '📊 ETF\'er' },
+  { symbol: 'QQQ', name: 'Nasdaq 100 ETF', group: '📊 ETF\'er' },
+  { symbol: 'VTI', name: 'Vanguard Total Stock Market', group: '📊 ETF\'er' },
+  { symbol: 'IWM', name: 'Russell 2000', group: '📊 ETF\'er' },
+  { symbol: 'DIA', name: 'Dow Jones ETF', group: '📊 ETF\'er' },
+  { symbol: 'GLD', name: 'Guld ETF', group: '📊 ETF\'er' },
+  { symbol: 'TLT', name: 'Treasury Bond ETF', group: '📊 ETF\'er' },
+  { symbol: 'VNQ', name: 'Real Estate ETF', group: '📊 ETF\'er' },
+  { symbol: 'XLE', name: 'Energy ETF', group: '📊 ETF\'er' },
+  { symbol: 'ARKK', name: 'ARK Innovation ETF', group: '📊 ETF\'er' },
+  { symbol: 'MSOS', name: 'US Cannabis ETF', group: '📊 ETF\'er' },
+  { symbol: 'BITO', name: 'Bitcoin ETF (ProShares)', group: '📊 ETF\'er' },
+  { symbol: 'ETHA', name: 'Ethereum ETF', group: '📊 ETF\'er' },
+  { symbol: 'IAU', name: 'Guld (iShares)', group: '📊 ETF\'er' },
+  { symbol: 'SLV', name: 'Sølv ETF', group: '📊 ETF\'er' },
+  { symbol: 'UNG', name: 'Natural Gas ETF', group: '📊 ETF\'er' },
+  { symbol: 'USO', name: 'Crude Oil ETF', group: '📊 ETF\'er' },
+  // ETF'er - Nordnet Danmark / Europa
+  { symbol: 'SXR8.DE', name: 'iShares Core S&P 500 (SXR8)', group: '📊 ETF\'er' },
+  { symbol: 'EUNA.DE', name: 'iShares MSCI Europe', group: '📊 ETF\'er' },
+  { symbol: 'IUSA.DE', name: 'iShares S&P 500', group: '📊 ETF\'er' },
+  { symbol: 'CSPX.L', name: 'iShares S&P 500 (IE)', group: '📊 ETF\'er' },
+  { symbol: 'SWDA.L', name: 'iShares MSCI World', group: '📊 ETF\'er' },
+  { symbol: 'EMM.L', name: 'iShares MSCI EM', group: '📊 ETF\'er' },
+  { symbol: 'VUAA.L', name: 'Vanguard S&P 500 (VUAA)', group: '📊 ETF\'er' },
+  { symbol: 'VWRL.L', name: 'Vanguard FTSE All-World', group: '📊 ETF\'er' },
+  { symbol: 'VWRD.L', name: 'Vanguard FTSE Dev. World', group: '📊 ETF\'er' },
+  { symbol: 'VDMW.L', name: 'Vanguard MSCI World', group: '📊 ETF\'er' },
+  { symbol: 'VFEA.L', name: 'Vanguard FTSE EM', group: '📊 ETF\'er' },
+  { symbol: 'WRD.TO', name: 'iShares World', group: '📊 ETF\'er' },
+  { symbol: 'EFA', name: 'iShares MSCI ACWI', group: '📊 ETF\'er' },
+  { symbol: 'ACWI', name: 'MSCI ACWI', group: '📊 ETF\'er' },
+  // Krypto
+  { symbol: 'BTC-USD', name: 'Bitcoin', group: '🪙 Kryptovaluta' },
+  { symbol: 'ETH-USD', name: 'Ethereum', group: '🪙 Kryptovaluta' },
+  { symbol: 'SOL-USD', name: 'Solana', group: '🪙 Kryptovaluta' },
+  { symbol: 'BNB-USD', name: 'Binance Coin', group: '🪙 Kryptovaluta' },
+  { symbol: 'XRP-USD', name: 'Ripple', group: '🪙 Kryptovaluta' },
+  { symbol: 'ADA-USD', name: 'Cardano', group: '🪙 Kryptovaluta' },
+  { symbol: 'DOGE-USD', name: 'Dogecoin', group: '🪙 Kryptovaluta' },
+  { symbol: 'DOT-USD', name: 'Polkadot', group: '🪙 Kryptovaluta' },
+  { symbol: 'AVAX-USD', name: 'Avalanche', group: '🪙 Kryptovaluta' },
+  { symbol: 'LINK-USD', name: 'Chainlink', group: '🪙 Kryptovaluta' },
+  { symbol: 'MATIC-USD', name: 'Polygon', group: '🪙 Kryptovaluta' },
+  { symbol: 'UNI-USD', name: 'Uniswap', group: '🪙 Kryptovaluta' },
+  // Europæiske
+  { symbol: 'ASML.AS', name: 'ASML (Nederlandene)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'SAP.DE', name: 'SAP (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'ABB.SW', name: 'ABB (Schweiz)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'NESN.SW', name: 'Nestlé (Schweiz)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'SHEL.L', name: 'Shell (Holland/UK)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'ULVR.L', name: 'Unilever (Holland/UK)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'TTE.PA', name: 'TotalEnergies (Frankrig)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'MC.PA', name: 'LVMH (Frankrig)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'AIR.PA', name: 'Airbus (Frankrig)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'SIE.DE', name: 'Siemens (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'BMWG.DE', name: 'BMW (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'VOW3.DE', name: 'Volkswagen (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'ALV.DE', name: 'Allianz (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'BAS.DE', name: 'BASF (Tyskland)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'BNP.PA', name: 'BNP Paribas', group: '🌍 Europæiske Aktier' },
+  { symbol: 'HSBA.L', name: 'HSBC', group: '🌍 Europæiske Aktier' },
+  { symbol: 'AZN.L', name: 'AstraZeneca', group: '🌍 Europæiske Aktier' },
+  { symbol: 'NVO', name: 'Novo Nordisk (US)', group: '🌍 Europæiske Aktier' },
+  { symbol: 'ERIC-A.CO', name: 'Ericsson', group: '🌍 Europæiske Aktier' },
+  { symbol: 'KTB.ST', name: 'Klarna', group: '🌍 Europæiske Aktier' }
+];
+
+let selectedIndex = -1;
+
+function filterStocks(query) {
+  const dropdown = document.getElementById('stockDropdown');
+  if (!query) {
+    dropdown.classList.remove('show');
+    return;
+  }
+
+  const q = query.toLowerCase();
+  const matches = allStocks.filter(s =>
+    s.symbol.toLowerCase().includes(q) ||
+    s.name.toLowerCase().includes(q)
+  );
+
+  // Group matches
+  const groups = {};
+  matches.forEach(m => {
+    if (!groups[m.group]) groups[m.group] = [];
+    groups[m.group].push(m);
+  });
+
+  // Build HTML
+  let html = '';
+  Object.keys(groups).forEach(group => {
+    html += `<div class="optgroup-header">${group}</div>`;
+    groups[group].forEach(stock => {
+      const highlighted = stock.name.replace(
+        new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+        '<mark>$1</mark>'
+      );
+      html += `
+        <div class="stock-item" data-symbol="${stock.symbol}">
+          <span class="symbol">${stock.symbol}</span>
+          <span class="name">${highlighted}</span>
+        </div>
+      `;
+    });
+  });
+
+  // Add custom stock section at the end of dropdown
+  html += `<div class="custom-add-section">
+    <button type="button" onclick="showCustomStockInput()" class="custom-add-btn">
+      + Tilfoej egen aktie/ETF
+    </button>
+    <div id="customStockInput" style="display:none; margin-top:10px; padding:8px;">
+      <input type="text" id="customSymbol" placeholder="Yahoo symbol (f.eks. AAPL, SXR8.DE)" style="width:100%;padding:5px;margin-bottom:5px;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:4px;font-size:0.85em;">
+      <input type="text" id="customName" placeholder="Navn (f.eks. iShares S&P 500)" style="width:100%;padding:5px;margin-bottom:5px;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:4px;font-size:0.85em;">
+      <button onclick="addCustomStock()" style="padding:5px 12px;background:#00e5ff;color:#111;border:none;border-radius:4px;cursor:pointer;font-size:0.85em;font-weight:bold;">Tilfoej</button>
+    </div>
+  </div>`;
+
+  if (!html) {
+    dropdown.innerHTML = '<div class="optgroup-header" style="cursor:default;color:#555">Ingen resultater</div>';
+  } else {
+    dropdown.innerHTML = html;
+  }
+  dropdown.classList.add('show');
+  selectedIndex = -1;
+
+  // Add click handlers
+  document.querySelectorAll('.stock-item').forEach(item => {
+    item.addEventListener('click', () => {
+      selectStock(item.dataset.symbol);
+      document.getElementById('stockSearch').value = '';
+      dropdown.classList.remove('show');
+    });
+  });
+}
+
+function handleKeyDown(e) {
+  const items = document.querySelectorAll('.stock-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+    updateSelection(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    selectedIndex = Math.max(selectedIndex - 1, 0);
+    updateSelection(items);
+  } else if (e.key === 'Enter' && selectedIndex >= 0) {
+    e.preventDefault();
+    selectStock(items[selectedIndex].dataset.symbol);
+    document.getElementById('stockSearch').value = '';
+    document.getElementById('stockDropdown').classList.remove('show');
+  }
+}
+
+function updateSelection(items) {
+  items.forEach((item, i) => {
+    item.classList.toggle('selected', i === selectedIndex);
+  });
+  if (selectedIndex >= 0) {
+    items[selectedIndex].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// Event listeners
+document.getElementById('stockSearch').addEventListener('input', e => {
+  filterStocks(e.target.value);
+});
+
+document.getElementById('stockSearch').addEventListener('keydown', handleKeyDown);
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.stock-autocomplete')) {
+    document.getElementById('stockDropdown').classList.remove('show');
+  }
+});
+
+// selectStock – called when user picks from dropdown (fills qty/price fields)
+function selectStock(symbol) {
+  const s = stocks[symbol];
+  if (!s) return;
+  const fxRate = fxRates[s.currency] || 1;
+  const priceInDKK = (s.price * fxRate).toFixed(2);
+  lastSelectedSymbol = symbol;
+  document.getElementById('stockQty').value = '';
+  document.getElementById('stockBuyPrice').value = priceInDKK;
+  document.getElementById('stockQty').focus();
+}
+
+// Opdater timestamp hvert minut
+setInterval(updateTimestamp, 60000);
+
+// Custom stock functions
+function showCustomStockInput() {
+  document.getElementById('customStockInput').style.display = 'block';
+  document.getElementById('customSymbol').focus();
+}
+
+function addCustomStock() {
+  const symbol = document.getElementById('customSymbol').value.trim().toUpperCase();
+  const name = document.getElementById('customName').value.trim();
+
+  if (!symbol) {
+    alert('Indtast Yahoo symbol');
+    return;
+  }
+
+  // Tilføj til allStocks array
+  allStocks.push({
+    symbol: symbol,
+    name: name || symbol,
+    group: '🧑 Brugerdefineret'
+  });
+
+  // Gem til localStorage
+  localStorage.setItem('customStocks', JSON.stringify(
+    allStocks.filter(s => s.group === '🧑 Brugerdefineret')
+  ));
+
+  // Vælg den nye aktie
+  selectStock(symbol);
+
+  // Reset dropdown search
+  document.getElementById('stockSearch').value = '';
+  document.getElementById('stockDropdown').classList.remove('show');
+
+  // Reset input
+  document.getElementById('customStockInput').style.display = 'none';
+  document.getElementById('customSymbol').value = '';
+  document.getElementById('customName').value = '';
+}
+
+// Load custom stocks from localStorage on init
+(function loadCustomStocks() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('customStocks') || '[]');
+    saved.forEach(s => {
+      if (!allStocks.find(existing => existing.symbol === s.symbol)) {
+        allStocks.push({ symbol: s.symbol, name: s.name, group: '🧑 Brugerdefineret' });
+      }
+    });
+  } catch(e) {}
+})();

@@ -1,61 +1,127 @@
-# 📊 Benchmark: ETF Universe vs OMXC25 (C20)
+# Multi-Agent System Benchmark
 
-## Formål
-Sammenligne ETF-universet's performance mod det danske C20 index over samme periode.
-
-## Metode
-- Startdato: 2026-01-06 (første handelsdag i 2026)
-- Slutdato: 2026-04-04 (nyeste data)
-- Beregn normaliseret performance (baseline = 100)
-
-## Ticker Universe
-- **Energi:** XOP, OIH, IYE, VDE, XLE
-- **Olie-proxies:** USO, BNO
-- **Forsvar:** ITA, PPA, XAR
-- **Guld:** GLD, IAU
-- **Benchmark:** ^OMXC25 (OMX Copenhagen 25)
-
-## Kilder
-- Yahoo Finance (yfinance)
-- ^OMXC25 = OMX Copenhagen 25 (C20Nachfolge-Index)
-
-## Evaluering
-- Relative afkast over perioden
-- Risiko-justeret afkast (hvis ATR/vol data tilgængelig)
-- Korrelation med C20
-
-## Status
-**Phase:** 🟡 Analyse i gang (data indsamlet)
-
-## Performance Data (2026-01-06 → 2026-04-04)
-
-### ETF Universe vs C20 Benchmark
-
-| Ticker | Start | Slut | Ændring | Kategori |
-|--------|-------|------|---------|----------|
-| USO | 70.22 | 137.92 | **+96.41%** | Olie-proxy |
-| BNO | 28.75 | 54.12 | **+88.24%** | Olie-proxy |
-| XOP | 126.99 | 177.72 | **+39.95%** | Olie-services |
-| OIH | 311.68 | 399.05 | **+28.03%** | Olie-services |
-| VDE | 130.88 | 168.06 | **+28.41%** | Energi |
-| XLE | 46.59 | 59.25 | **+27.19%** | Energi |
-| IYE | 49.48 | 62.83 | **+26.98%** | Energi |
-| GLD | 408.76 | 429.41 | +5.05% | Guld |
-| IAU | 83.71 | 87.94 | +5.05% | Guld |
-| PPA | 165.28 | 169.68 | +2.67% | Forsvar |
-| XAR | 260.22 | 259.58 | -0.24% | Forsvar |
-| ITA | 226.33 | 221.91 | -1.95% | Forsvar |
-| **^OMXC25** | 1826.99 | 1709.95 | **-6.41%** | C20 Benchmark |
-
-### Konklusion
-- **Olie/Energi ETF'ere:** +27% til +96% (massive outperformance)
-- **Forsvar ETF'ere:** -2% til +3% (svag performance)
-- **Guld ETF'ere:** +5% (begrænset upside)
-- **C20 Benchmark:** -6.41% (nedadgående marked)
-
-### Bemærkning
-Data er fra perioden 2026-01-06 til 2026-04-04. Olie/energi har haft exceptionelt afkast pga globale forsyningschok. Historisk performance er ingen garanti for fremtidige resultater.
+**Version:** 0.1 draft  
+**Dato:** 2026-04-06  
+**Formål:** Teste og dokumentere agent-systemets præstation på tværs af versioner
 
 ---
 
-*Created: 2026-04-04*
+## De Tre Dimensioner
+
+| Dimension | Måler | Hvordan |
+|-----------|-------|---------|
+| **KOMPLEXITET** | Hvordan håndterer systemet opgaver af stigende kompleksitet? | 1→2→3→4→5 stjerner opgaver |
+| **KVALITET** | Hvor god er output? | 1-10 rating, peer review |
+| **SELVUDVIKLING** | Kan systemet forbedre sig over tid? | Mål: memory utilization, self-improving entries |
+
+---
+
+## Benchmark Opgaver (Kompleksitet 1-5)
+
+### Kompleksitet 1: Simpel Fakta
+```
+Opgave: "Hvem skrev Den lille pige med svovlstikkerne?"
+Forventet: ASIS svarer direkte (< 10 sek)
+```
+**Score:** Kompleksitet 1/5, Kvalitet 1-10, Self-udvikling 0/5
+
+### Kompleksitet 2: Research
+```
+Opgave: "Find 5 ting H.C. Andersen skrev i 1845"
+Forventet: REX → kort research
+```
+**Score:** Kompleksitet 2/5, Kvalitet 1-10, Self-udvikling 1/5
+
+### Kompleksitet 3: Analyse
+```
+Opgave: "Sammenlign 3 af Andersens eventyr"
+Forventet: REX research → ASIS analyserer
+```
+**Score:** Kompleksitet 3/5, Kvalitet 1-10, Self-udvikling 1/5
+
+### Kompleksitet 4: Kompleks Pipeline
+```
+Opgave: "Lav disposition til bachelor om svovlstikkerne"
+Forventet: ASIS → KO → MAX → REX×3 → MAX syntese → ASIS
+```
+**Score:** Kompleksitet 4/5, Kvalitet 1-10, Self-udvikling 2/5
+
+### Kompleksitet 5: Autonomous Agent Swarm
+```
+Opgave: "Find og løs 5 bugs i ai-trading-v3.html"
+Forventet: KO → MAX plan → GEMA×N → VALO QA → MAX syntese → ASIS
+```
+**Score:** Kompleksitet 5/5, Kvalitet 1-10, Self-udvikling 3/5
+
+---
+
+## Kvalitets-Metrikker
+
+### Per Opgave
+| Metrik | Score | Kommentar |
+|--------|-------|-----------|
+| **Accuratesse** | 1-10 | Er svaret korrekt? |
+| **Fuldstændighed** | 1-10 | Er alt med? |
+| **Format** | 1-10 | Er det læsbart? |
+| **Hastighed** | 1-10 | <10s=10, <1min=8, <5min=6, <10min=4, >10min=2 |
+| **Pipeline-Sharing** | 1-10 | Hvor meget delte agenterne korrekt? |
+
+### Samlet Kvalitets-Score
+```
+Gennemsnit = (Accuratesse + Fuldstændighed + Format + Hastighed + Pipeline-Sharing) / 5
+```
+
+---
+
+## Self-Udvikling Metrikker
+
+| Metrik | Måler | Hvordan |
+|--------|-------|---------|
+| **Memory Utilization** | Hvor ofte bruges MEMORY.md? | Tæl references i session |
+| **Self-Improving Logs** | Entries i self-improving/? | Tæl nye filer/entries |
+| **Correction Rate** | Fejl der rettes | Dokumenterede rettelser |
+| **Pattern Recognition** | Lært og genbrugt | Går samme fejl igen? |
+| **Version Improvement** | v0 → v01 = forbedring? | Sammenlign scores |
+
+---
+
+## Benchmark Log
+
+### v01 (2026-04-06) Baseline
+
+| Opgave | Kompleksitet | Kvalitet | Self-Udvikling | Total |
+|--------|--------------|----------|-----------------|-------|
+| [TBD] | 1 | /10 | /5 | /100 |
+| [TBD] | 2 | /10 | /5 | /100 |
+| [TBD] | 3 | /10 | /5 | /100 |
+| [TBD] | 4 | /10 | /5 | /100 |
+| [TBD] | 5 | /10 | /5 | /100 |
+
+**Gennemsnit:** /100
+
+---
+
+## Test Protokol
+
+### Hver Test-Session
+1. Vælg 3 opgaver (1x lav, 1x medium, 1x høj kompleksitet)
+2. Kør igennem systemet
+3. Scor umiddelbart efter
+4. Log til BENCHMARK.md
+
+### Hvornår Tester Vi?
+- Efter større ændringer (version bump)
+- Månedligt baseline check
+- Før/efter OpenClaw updates
+
+---
+
+## Næste Skridt
+- [ ] Kør første benchmark test
+- [ ] Etablér baseline for v01
+- [ ] Sammenlign med v0 historisk
+- [ ] Definer target scores per version
+
+---
+
+*Sidst opdateret: 2026-04-06*
