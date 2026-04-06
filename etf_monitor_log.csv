@@ -23,3 +23,15 @@ Timestamp_UTC,Ticker,Status,Årsag,Luk,ATR,Stop,TP1,TP2,Pos.størrelse (~stk),Ko
 2026-03-31T17:08:37Z,XAR,AFVENT,,252.32,8.49,235.34,286.28,303.26,88,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 3.37%).
 2026-03-31T17:08:37Z,GLD,AFVENT,,427.05,13.14,400.77,479.61,505.89,57,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 3.08%).
 2026-03-31T17:08:37Z,IAU,AFVENT,,87.49,2.6,82.29,97.89,103.09,288,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.97%).
+2026-04-06T16:15:06Z,XOP,AFVENT,,178.05,5.52,167.01,200.13,211.17,135,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 3.10%).
+2026-04-06T16:15:06Z,OIH,AFVENT,,398.33,11.62,375.09,444.81,468.05,64,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.92%).
+2026-04-06T16:15:06Z,IYE,AFVENT,,62.88,1.53,59.82,69.0,72.06,490,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.43%).
+2026-04-06T16:15:06Z,VDE,AFVENT,,168.21,4.26,159.7,185.24,193.75,176,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.53%).
+2026-04-06T16:15:06Z,XLE,AFVENT,,59.29,1.55,56.19,65.5,68.61,483,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.62%).
+2026-04-06T16:15:06Z,USO,AFVENT,,137.65,6.96,123.74,165.47,179.38,107,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Høj volatilitet (ATR 5.05% af pris) — forvent større sving.
+2026-04-06T16:15:06Z,BNO,AFVENT,,54.44,2.62,49.21,64.9,70.13,286,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Høj volatilitet (ATR 4.81% af pris) — forvent større sving.
+2026-04-06T16:15:06Z,ITA,AFVENT,,223.93,5.76,212.42,246.96,258.48,130,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.57%).
+2026-04-06T16:15:06Z,PPA,AFVENT,,170.68,3.95,162.78,186.48,194.38,189,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.31%).
+2026-04-06T16:15:06Z,XAR,AFVENT,,262.32,8.35,245.61,295.73,312.43,89,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 3.18%).
+2026-04-06T16:15:06Z,GLD,AFVENT,,428.99,12.69,403.61,479.75,505.13,59,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.96%).
+2026-04-06T16:15:06Z,IAU,AFVENT,,87.9,2.52,82.85,98.0,103.05,297,Afvent: ingen købesignal. Overvåg SMA50/SMA200‑struktur og Donchian‑bånd for nyt setup. Middel volatilitet (ATR 2.87%).

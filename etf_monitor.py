@@ -52,6 +52,10 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import os
+import functools
+import socket
+import urllib.request
+import urllib.error
 
 import numpy as np
 import pandas as pd
@@ -71,6 +75,48 @@ try:
 except Exception as e:
     print("yfinance is required. Install with: pip install yfinance")
     raise
+
+# ----------------------------
+# Retry decorator with exponential backoff
+# ----------------------------
+
+def _is_yf_retryable(error: Exception) -> bool:
+    """Return True if the error is likely a transient yfinance / network issue worth retrying."""
+    msg = str(error).lower()
+    # Rate limit, connection reset, timeout, JSON decode errors, socket errors
+    retryable_keywords = (
+        "connection", "reset", "timeout", "temporarily unavailable",
+        "rate limit", "429", "502", "503", "504", "504 gateway",
+        "socket", "network", "resolve", "name or service not known",
+        "json decode", "expecting value", "no json",
+    )
+    return any(k in msg for k in retryable_keywords)
+
+
+def with_retry(max_retries: int = 3, initial_wait: float = 2.0, backoff_factor: float = 2.0):
+    """
+    Decorator that retries a function on transient yfinance/network errors.
+    Exponential backoff: wait = initial_wait * (backoff_factor ** attempt)
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            wait = initial_wait
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_retries or not _is_yf_retryable(e):
+                        raise
+                    print(f"  [RETRY] {func.__name__} attempt {attempt + 1}/{max_retries} failed: {e}. "
+                          f"Waiting {wait:.1f}s before retry...")
+                    time.sleep(wait)
+                    wait *= backoff_factor
+            # unreachable, but satisfies type checker
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
 
 # ----------------------------
 # Configuration
@@ -170,52 +216,63 @@ class Signal:
 
 def fetch_history_bulk(tickers: list[str], days: int = DOWNLOAD_DAYS, interval: str = INTERVAL) -> dict[str, pd.DataFrame]:
     """
-    Download historical data for all tickers in a single network call.
+    Download historical data for all tickers one at a time with retry logic.
+    Adds a 0.5s sleep between tickers to avoid Yahoo Finance rate limiting.
     Returns a dict mapping ticker -> DataFrame.
     """
+    result = {}
+    for i, ticker in enumerate(tickers):
+        # Sleep before every ticker except the first to space out requests
+        if i > 0:
+            time.sleep(0.5)
+
+        print(f"  Downloading {ticker} ({i + 1}/{len(tickers)})...", end="\r")
+        df = _download_ticker_with_retry(ticker, days=days, interval=interval)
+        if df is not None:
+            result[ticker] = df
+
+    print()  # clear the progress line
+    return result
+
+
+@with_retry(max_retries=3, initial_wait=2.0, backoff_factor=2.0)
+def _download_ticker_with_retry(ticker: str, days: int, interval: str) -> pd.DataFrame | None:
+    """
+    Download a single ticker's history, retrying on transient errors.
+    Raises non-retryable exceptions through the decorator.
+    """
     start = datetime.now() - timedelta(days=days)
-    # Bulk download: all tickers in one call
     data = yf.download(
-        tickers=tickers,
+        tickers=ticker,
         start=start,
         end=None,
         interval=interval,
-        progress=True,
+        progress=False,
         auto_adjust=False,
-        group_by="ticker",       # creates multi-level columns: (ticker, field)
-        threads=True,            # parallel download within yfinance
+        group_by="ticker",
+        threads=True,
     )
-    result = {}
-    for ticker in tickers:
-        try:
-            if isinstance(data.columns, pd.MultiIndex):
-                # Extract this ticker's columns
-                if ticker in data.columns.get_level_values(0):
-                    df = data[ticker].copy()
-                else:
-                    # Try with .YS suffix that yfinance sometimes adds
-                    alt = ticker.replace("-", ".")
-                    if alt in data.columns.get_level_values(0):
-                        df = data[alt].copy()
-                    else:
-                        raise RuntimeError(f"Ticker {ticker} not found in bulk download result")
-            else:
-                df = data.copy()
 
-            if df.empty or len(df) < 200:
-                raise RuntimeError(f"Insufficient data for {ticker} ({len(df)} rows)")
+    # Handle multi-level columns from yfinance (same as original bulk logic)
+    if isinstance(data.columns, pd.MultiIndex):
+        alt = ticker.replace("-", ".")
+        if ticker in data.columns.get_level_values(0):
+            data = data[ticker].copy()
+        elif alt in data.columns.get_level_values(0):
+            data = data[alt].copy()
+        else:
+            raise RuntimeError(f"Ticker {ticker} not found in download result")
 
-            # Use Adj Close where available, else Close
-            if "Adj Close" in df.columns:
-                df["AdjClose"] = df["Adj Close"]
-            else:
-                df["AdjClose"] = df["Close"]
+    if data.empty or len(data) < 200:
+        raise RuntimeError(f"Insufficient data for {ticker} ({len(data)} rows)")
 
-            result[ticker] = df
-        except Exception as e:
-            # Log and skip this ticker; caller handles missing entries
-            print(f"  [WARN] Skipping {ticker}: {e}")
-    return result
+    # Use Adj Close where available, else Close
+    if "Adj Close" in data.columns:
+        data["AdjClose"] = data["Adj Close"]
+    else:
+        data["AdjClose"] = data["Close"]
+
+    return data
 
 
 def analyze_ticker_from_df(ticker: str, df: pd.DataFrame, equity: float, risk_pct: float) -> Signal:
